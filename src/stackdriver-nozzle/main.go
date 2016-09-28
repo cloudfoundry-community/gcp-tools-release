@@ -6,6 +6,7 @@ import (
 	"github.com/evandbrown/gcp-tools-boshrelease/src/stackdriver-nozzle/stackdriver"
 
 	"gopkg.in/alecthomas/kingpin.v2"
+	"github.com/evandbrown/gcp-tools-boshrelease/src/stackdriver-nozzle/nozzle"
 )
 
 var (
@@ -25,7 +26,7 @@ func main() {
 	kingpin.Parse()
 
 	sdClient := stackdriver.NewClient(*projectID)
-	sdClient.Post("hello world 5")
+	//sdClient.Post("hello world 5")
 
 	config := &firehose.ClientConfig{
 		User:                 *user,
@@ -35,7 +36,10 @@ func main() {
 	}
 
 	client := firehose.NewClient(config)
-	client.StartListening(&StdOut{})
+
+	n := nozzle.Nozzle{ StackdriverClient: sdClient }
+	client.StartListening(&n)
+	//client.StartListening(&StdOut{})
 }
 
 type StdOut struct {
@@ -45,9 +49,8 @@ func (so *StdOut) Connect() bool {
 	return true
 }
 
-func (so *StdOut) ShipEvents(event map[string]interface{}, whatIsThis string) {
-	//fmt.Printf("%s: %+v\n\n", whatIsThis, event)
-
-	eventType := event["event_type"]
-	fmt.Printf("%s: %+v\n\n", eventType, event)
+func (so *StdOut) ShipEvents(event map[string]interface{}, msg string) {
+	if msg != "" {
+		fmt.Printf("%s: %+v\n\n", msg, event)
+	}
 }

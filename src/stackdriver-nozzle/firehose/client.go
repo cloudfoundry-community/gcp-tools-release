@@ -43,7 +43,7 @@ func (f *client) StartListening(nozzle logging.Logging) error {
 
 	events := eventRouting.NewEventRouting(cachingClient, nozzle)
 
-	err := events.SetupEventRouting("LogMessage,ValueMetric,HttpStartStop,CounterEvent,Error,ContainerMetric")
+	err := events.SetupEventRouting("HttpStartStop")
 	if err != nil {
 		return err
 	}

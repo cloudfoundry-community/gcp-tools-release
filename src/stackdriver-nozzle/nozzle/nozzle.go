@@ -6,7 +6,6 @@ import (
 
 
 type Nozzle struct {
-	//FirehoseClient firehose.Client
 	StackdriverClient stackdriver.Client
 }
 

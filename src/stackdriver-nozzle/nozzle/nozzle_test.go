@@ -1,9 +1,9 @@
 package nozzle_test
 
 import (
+	"github.com/evandbrown/gcp-tools-boshrelease/src/stackdriver-nozzle/nozzle"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/evandbrown/gcp-tools-boshrelease/src/stackdriver-nozzle/nozzle"
 )
 
 var _ = Describe("Nozzle", func() {
@@ -16,18 +16,21 @@ var _ = Describe("Nozzle", func() {
 		mockStackdriverClient = &MockStackdriverClient{}
 	})
 
-	It("sink posts to client", func() {
-		posted := false
-		mockStackdriverClient.PostFn = func(interface{}) {
-			posted = true
+	It("ships events to the stackdriver client", func() {
+		var postedEvent interface{}
+		mockStackdriverClient.PostFn = func(e interface{}) {
+			postedEvent = e
 		}
 
-		n := nozzle.Nozzle { StackdriverClient: mockStackdriverClient }
-		n.ShipEvents(map[string]interface{} {
+		shippedEvent := map[string]interface{}{
+			"event_type": "HttpStartStop",
 			"foo": "bar",
-		}, "")
+		}
 
-		Expect(posted).To(BeTrue())
+		n := nozzle.Nozzle{StackdriverClient: mockStackdriverClient}
+		n.ShipEvents(shippedEvent, "message")
+
+		Expect(postedEvent).To(Equal(shippedEvent))
 	})
 })
 
