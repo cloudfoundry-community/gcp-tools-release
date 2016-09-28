@@ -6,7 +6,7 @@ import (
 )
 
 type Client interface {
-	Post(payload interface{})
+	Post(payload interface{}, labels map[string]string)
 }
 
 type client struct {
@@ -33,7 +33,7 @@ func NewClient(projectID string) Client {
 	return &client{logger: logger}
 }
 
-func (s *client) Post(payload interface{}) {
+func (s *client) Post(payload interface{}, _ map[string]string) {
 	entry := logging.Entry{
 		Payload: payload,
 	}

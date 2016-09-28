@@ -18,7 +18,7 @@ var _ = Describe("Nozzle", func() {
 
 	It("ships something to the stackdriver client", func() {
 		var postedEvent interface{}
-		mockStackdriverClient.PostFn = func(e interface{}) {
+		mockStackdriverClient.PostFn = func(e interface{}, _ map[string]string) {
 			postedEvent = e
 		}
 
@@ -35,7 +35,7 @@ var _ = Describe("Nozzle", func() {
 
 	It("ships multiple events", func() {
 		count := 0
-		mockStackdriverClient.PostFn = func(e interface{}) {
+		mockStackdriverClient.PostFn = func(e interface{}, _ map[string]string) {
 			count += 1
 		}
 
@@ -54,11 +54,11 @@ var _ = Describe("Nozzle", func() {
 })
 
 type MockStackdriverClient struct {
-	PostFn func(interface{})
+	PostFn func(interface{}, map[string]string)
 }
 
-func (m *MockStackdriverClient) Post(payload interface{}) {
+func (m *MockStackdriverClient) Post(payload interface{}, labels map[string]string) {
 	if m.PostFn != nil {
-		m.PostFn(payload)
+		m.PostFn(payload, labels)
 	}
 }

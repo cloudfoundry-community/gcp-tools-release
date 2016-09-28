@@ -14,5 +14,5 @@ func (n *Nozzle) Connect() bool {
 }
 
 func (n *Nozzle) ShipEvents(event map[string]interface{}, _ string /* TODO research second string */) {
-	n.StackdriverClient.Post(event)
+	n.StackdriverClient.Post(event, map[string]string{})
 }
