@@ -41,9 +41,9 @@ func (f *client) StartListening(nozzle logging.Logging) error {
 
 	cachingClient := caching.NewCachingEmpty()
 
-	events := eventRouting.NewEventRouting(cachingClient, nozzle)
+	eventRouting := eventRouting.NewEventRouting(cachingClient, nozzle)
 
-	err := events.SetupEventRouting("HttpStartStop")
+	err := eventRouting.SetupEventRouting("HttpStartStop")
 	if err != nil {
 		return err
 	}
@@ -56,7 +56,7 @@ func (f *client) StartListening(nozzle logging.Logging) error {
 			FirehoseSubscriptionID: "stackdriver-nozzle",
 		}
 
-		firehoseClient := firehoseclient.NewFirehoseNozzle(cfClient, events, firehoseConfig)
+		firehoseClient := firehoseclient.NewFirehoseNozzle(cfClient, eventRouting, firehoseConfig)
 
 		firehoseClient.Start()
 	}

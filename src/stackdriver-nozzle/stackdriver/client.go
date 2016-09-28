@@ -15,8 +15,7 @@ type client struct {
 
 const LOG_ID = "cf_logs"
 
-// TODO Auth? We're currently relying on auto-auth
-// TODO error handling
+// TODO error handling #131310523
 func NewClient(projectID string) Client {
 	ctx := context.Background()
 

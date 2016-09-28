@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/evandbrown/gcp-tools-boshrelease/src/stackdriver-nozzle/firehose"
 	"github.com/evandbrown/gcp-tools-boshrelease/src/stackdriver-nozzle/stackdriver"
 
@@ -40,17 +39,4 @@ func main() {
 	n := nozzle.Nozzle{ StackdriverClient: sdClient }
 	client.StartListening(&n)
 	//client.StartListening(&StdOut{})
-}
-
-type StdOut struct {
-}
-
-func (so *StdOut) Connect() bool {
-	return true
-}
-
-func (so *StdOut) ShipEvents(event map[string]interface{}, msg string) {
-	if msg != "" {
-		fmt.Printf("%s: %+v\n\n", msg, event)
-	}
 }
