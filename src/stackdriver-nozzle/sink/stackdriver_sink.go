@@ -6,7 +6,7 @@ type stackdriverSink struct {
 	client StackdriverClient
 }
 
-func NewStackdriverSink(client StackdriverClient) *logging.Logging {
+func NewStackdriverSink(client StackdriverClient) logging.Logging {
 	return &stackdriverSink{
 		client: client,
 	}
