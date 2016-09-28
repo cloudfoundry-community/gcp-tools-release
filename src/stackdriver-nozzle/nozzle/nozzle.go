@@ -2,6 +2,7 @@ package nozzle
 
 import (
 	"github.com/evandbrown/gcp-tools-boshrelease/src/stackdriver-nozzle/stackdriver"
+	"fmt"
 )
 
 
@@ -14,5 +15,7 @@ func (n *Nozzle) Connect() bool {
 }
 
 func (n *Nozzle) ShipEvents(event map[string]interface{}, _ string /* TODO research second string */) {
-	n.StackdriverClient.Post(event, map[string]string{})
+	n.StackdriverClient.Post(event, map[string]string{
+		"event_type": fmt.Sprintf("%v", event["event_type"]),
+	})
 }

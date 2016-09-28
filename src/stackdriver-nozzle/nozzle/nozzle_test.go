@@ -51,6 +51,25 @@ var _ = Describe("Nozzle", func() {
 
 		Expect(count).To(Equal(10))
 	})
+
+	It("creates labels from the event", func() {
+		var labels map[string]string
+		mockStackdriverClient.PostFn = func(e interface{}, sentLabels map[string]string) {
+			labels = sentLabels
+		}
+
+		shippedEvent := map[string]interface{}{
+			"event_type": "HttpStartStop",
+			"foo":        "bar",
+		}
+		n := nozzle.Nozzle{StackdriverClient: mockStackdriverClient}
+
+			n.ShipEvents(shippedEvent, "message")
+
+		Expect(labels).To(Equal(map[string]string {
+			"event_type": "HttpStartStop",
+		}))
+	})
 })
 
 type MockStackdriverClient struct {
