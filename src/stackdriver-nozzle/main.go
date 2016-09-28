@@ -15,7 +15,6 @@ func main() {
 		Password: "",
 		ApiEndpoint: "",
 		SkipSSLValidation: true,
-		TrafficControllerURL: "",
 	}
 
 	client := firehose.NewClient(config)

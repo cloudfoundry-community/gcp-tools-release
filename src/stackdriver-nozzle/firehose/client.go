@@ -21,7 +21,6 @@ type ClientConfig struct {
 	Password string
 	ApiEndpoint string
 	SkipSSLValidation bool
-	TrafficControllerURL string
 }
 
 func NewClient(config *ClientConfig) (Client) {
@@ -51,7 +50,7 @@ func (f *client) StartListening(nozzle logging.Logging) error {
 
 	if nozzle.Connect() {
 		firehoseConfig := &firehoseclient.FirehoseConfig{
-			TrafficControllerURL:   config.TrafficControllerURL,
+			TrafficControllerURL:   cfClient.Endpoint.DopplerEndpoint,
 			InsecureSSLSkipVerify:  true,
 			IdleTimeoutSeconds:     30,
 			FirehoseSubscriptionID: "stackdriver-nozzle",
