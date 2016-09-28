@@ -13,6 +13,8 @@ type client struct {
 	logger *logging.Logger
 }
 
+const LOG_ID = "cf_logs"
+
 // TODO Auth? We're currently relying on auto-auth
 // TODO error handling
 func NewClient(projectID string) Client {
@@ -27,7 +29,7 @@ func NewClient(projectID string) Client {
 		panic(err)
 	}
 
-	logger := loggingClient.Logger("logs/cf_logs")
+	logger := loggingClient.Logger(LOG_ID)
 
 	return &client{logger: logger}
 }
@@ -37,5 +39,4 @@ func (s *client) Post(payload interface{}) {
 		Payload: payload,
 	}
 	s.logger.Log(entry)
-	s.logger.Flush() // TODO ???
 }

@@ -16,7 +16,7 @@ var _ = Describe("Nozzle", func() {
 		mockStackdriverClient = &MockStackdriverClient{}
 	})
 
-	It("ships events to the stackdriver client", func() {
+	It("ships something to the stackdriver client", func() {
 		var postedEvent interface{}
 		mockStackdriverClient.PostFn = func(e interface{}) {
 			postedEvent = e
@@ -24,13 +24,32 @@ var _ = Describe("Nozzle", func() {
 
 		shippedEvent := map[string]interface{}{
 			"event_type": "HttpStartStop",
-			"foo": "bar",
+			"foo":        "bar",
 		}
 
 		n := nozzle.Nozzle{StackdriverClient: mockStackdriverClient}
 		n.ShipEvents(shippedEvent, "message")
 
 		Expect(postedEvent).To(Equal(shippedEvent))
+	})
+
+	It("ships multiple events", func() {
+		count := 0
+		mockStackdriverClient.PostFn = func(e interface{}) {
+			count += 1
+		}
+
+		shippedEvent := map[string]interface{}{
+			"event_type": "HttpStartStop",
+			"foo":        "bar",
+		}
+		n := nozzle.Nozzle{StackdriverClient: mockStackdriverClient}
+
+		for i := 0; i < 10; i++ {
+			n.ShipEvents(shippedEvent, "message")
+		}
+
+		Expect(count).To(Equal(10))
 	})
 })
 
