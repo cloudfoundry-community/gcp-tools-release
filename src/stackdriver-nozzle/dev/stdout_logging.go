@@ -1,4 +1,4 @@
-package debug
+package dev
 
 import "fmt"
 
@@ -10,8 +10,6 @@ func (so *StdOut) Connect() bool {
 }
 
 func (so *StdOut) ShipEvents(event map[string]interface{}, msg string) {
-	if msg != "" {
-		fmt.Printf("%s: %+v\n\n", msg, event)
-	}
+	fmt.Printf("%s: %+v\n\n", msg, event)
 }
 
