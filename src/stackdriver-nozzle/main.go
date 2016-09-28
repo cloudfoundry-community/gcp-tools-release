@@ -19,10 +19,10 @@ var (
 		OverrideDefaultFromEnvar("API_ENDPOINT").
 		Required().
 		String()
-	user = kingpin.Flag("user", "username").
-		Default("admin").
-		OverrideDefaultFromEnvar("FIREHOSE_USER").
-		String()
+	username = kingpin.Flag("username", "username").
+			Default("admin").
+			OverrideDefaultFromEnvar("FIREHOSE_USERNAME").
+			String()
 	password = kingpin.Flag("password", "password").
 			Default("admin").
 			OverrideDefaultFromEnvar("FIREHOSE_PASSWORD").
@@ -40,18 +40,14 @@ func main() {
 	//todo: pull in logging library...
 	kingpin.Parse()
 
-	config := &firehose.ClientConfig{
-		User:              *user,
-		Password:          *password,
-		ApiEndpoint:       *apiEndpoint,
-		SkipSSLValidation: *skipSSLValidation,
-	}
-
-	client := firehose.NewClient(config)
+	client := firehose.NewClient(*apiEndpoint, *username, *password, *skipSSLValidation)
 
 	if *debug {
 		println("Sending firehose to standard out")
-		client.StartListening(&dev.StdOut{})
+		err := client.StartListening(&dev.StdOut{})
+		if err != nil {
+			panic(err)
+		}
 	} else {
 		println("Sending firehose to Stackdriver")
 		sdClient := stackdriver.NewClient(*projectID)

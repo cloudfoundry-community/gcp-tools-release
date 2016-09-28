@@ -1,11 +1,11 @@
 package firehose
 
 import (
+	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
 	"github.com/cloudfoundry-community/firehose-to-syslog/eventRouting"
 	"github.com/cloudfoundry-community/firehose-to-syslog/firehoseclient"
 	"github.com/cloudfoundry-community/firehose-to-syslog/logging"
 	"github.com/cloudfoundry-community/go-cfclient"
-	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
 )
 
 type Client interface {
@@ -13,31 +13,20 @@ type Client interface {
 }
 
 type client struct {
-	config *ClientConfig
+	cfConfig *cfclient.Config
 }
 
-type ClientConfig struct {
-	User string
-	Password string
-	ApiEndpoint string
-	SkipSSLValidation bool
+func NewClient(apiAddress, username, password string, skipSSLValidation bool) Client {
+	return &client{
+		&cfclient.Config{
+			ApiAddress:        apiAddress,
+			Username:          username,
+			Password:          password,
+			SkipSslValidation: skipSSLValidation}}
 }
 
-func NewClient(config *ClientConfig) (Client) {
-	return &client{config:config}
-}
-
-func (f *client) StartListening(nozzle logging.Logging) error {
-	config := f.config
-
-	cfConfig := &cfclient.Config{
-		ApiAddress:        config.ApiEndpoint,
-		Username:          config.User,
-		Password:          config.Password,
-		SkipSslValidation: config.SkipSSLValidation,
-	}
-
-	cfClient := cfclient.NewClient(cfConfig)
+func (fc *client) StartListening(nozzle logging.Logging) error {
+	cfClient := cfclient.NewClient(fc.cfConfig)
 
 	cachingClient := caching.NewCachingEmpty()
 
@@ -52,7 +41,7 @@ func (f *client) StartListening(nozzle logging.Logging) error {
 	if nozzle.Connect() {
 		firehoseConfig := &firehoseclient.FirehoseConfig{
 			TrafficControllerURL:   cfClient.Endpoint.DopplerEndpoint,
-			InsecureSSLSkipVerify:  true,
+			InsecureSSLSkipVerify:  fc.cfConfig.SkipSslValidation,
 			IdleTimeoutSeconds:     30,
 			FirehoseSubscriptionID: "stackdriver-nozzle",
 		}
