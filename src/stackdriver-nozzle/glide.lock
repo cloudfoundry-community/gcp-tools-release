@@ -1,0 +1,156 @@
+hash: 96642de519b41d55fff0dff3b4e9f12d8f9b56236262e61ef452d33913b98306
+updated: 2016-09-28T11:12:37.628392549-07:00
+imports:
+- name: cloud.google.com/go
+  version: 39c34167480d9b17fb60788334bffd5e116d6799
+  subpackages:
+  - compute/metadata
+  - internal
+  - internal/bundler
+  - logging
+  - logging/apiv2
+  - logging/internal
+- name: github.com/boltdb/bolt
+  version: 4d30731e9122988d2012a9574c43f80f054a0d3b
+- name: github.com/cloudfoundry-community/firehose-to-syslog
+  version: 2f0289cc7945c4cb44a27c4514c5d5cdcbee790a
+  subpackages:
+  - caching
+  - eventRouting
+  - events
+  - extrafields
+  - firehoseclient
+  - logging
+  - utils
+- name: github.com/cloudfoundry-community/go-cfclient
+  version: 113da20ed641ca3d56d09feec2ee37bda591f820
+- name: github.com/cloudfoundry/noaa
+  version: 0ca0d30d65c7422750132450593d402428dd2273
+  subpackages:
+  - consumer
+  - consumer/internal
+  - errors
+- name: github.com/cloudfoundry/sonde-go
+  version: 81c3f6be579cf4337477a8b0d03852d0760b5801
+  subpackages:
+  - events
+- name: github.com/gogo/protobuf
+  version: a4cceea7a401a73fefafd1a21fedbd4694124a82
+  subpackages:
+  - gogoproto
+  - proto
+  - protoc-gen-gogo/descriptor
+- name: github.com/golang/protobuf
+  version: 87c000235d3d852c1628dc9490cd21ab36a7d69f
+  subpackages:
+  - proto
+  - ptypes
+  - ptypes/any
+  - ptypes/duration
+  - ptypes/empty
+  - ptypes/struct
+  - ptypes/timestamp
+  - ptypes/wrappers
+- name: github.com/googleapis/gax-go
+  version: ed6ab759ab548d1e6e070f53f9d1105d2d8128b0
+- name: github.com/gorilla/websocket
+  version: a69d25be2fe2923a97c2af6849b2f52426f68fc0
+- name: github.com/mailru/easyjson
+  version: 3d7eb5818bd515e07588ded25d0d501516a0309d
+  subpackages:
+  - buffer
+  - jlexer
+  - jwriter
+- name: github.com/Sirupsen/logrus
+  version: 4b6ea7319e214d98c938f12692336f7ca9348d6b
+  subpackages:
+  - hooks/syslog
+- name: golang.org/x/net
+  version: 7dbad50ab5b31073856416cdcfeb2796d682f844
+  subpackages:
+  - context
+- name: golang.org/x/oauth2
+  version: 04e1573abc896e70388bd387a69753c378d46466
+  subpackages:
+  - google
+  - internal
+  - jws
+  - jwt
+- name: golang.org/x/sys
+  version: 9d4e42a20653790449273b3c85e67d6d8bae6e2e
+  subpackages:
+  - unix
+- name: google.golang.org/api
+  version: adba394bac5800ff2e620d040e9401528f5b7615
+  subpackages:
+  - internal
+  - option
+  - transport
+- name: google.golang.org/appengine
+  version: 8d4efd07a9358ec8c7e75b29387c31a7692db8d2
+  subpackages:
+  - internal
+  - internal/app_identity
+  - internal/base
+  - internal/datastore
+  - internal/log
+  - internal/modules
+  - internal/remote_api
+  - internal/socket
+  - internal/urlfetch
+  - socket
+  - urlfetch
+- name: google.golang.org/genproto
+  version: 44808ed2d86e258615bb701d395cbbfe6686a3e6
+  subpackages:
+  - googleapis/api/label
+  - googleapis/api/metric
+  - googleapis/api/monitoredres
+  - googleapis/api/serviceconfig
+  - googleapis/logging/type
+  - googleapis/logging/v2
+  - googleapis/rpc/status
+  - protobuf
+- name: google.golang.org/grpc
+  version: 6d7caeea7c3bbc318c636d366c82c328e2ea07b3
+  subpackages:
+  - codes
+  - credentials
+  - credentials/oauth
+  - grpclog
+  - internal
+  - metadata
+  - naming
+  - peer
+  - transport
+testImports:
+- name: github.com/onsi/ginkgo
+  version: 45a5f6ffb2a14e4f29698c16ae4c0a34018a8951
+  subpackages:
+  - config
+  - internal/codelocation
+  - internal/containernode
+  - internal/failer
+  - internal/leafnodes
+  - internal/remote
+  - internal/spec
+  - internal/specrunner
+  - internal/suite
+  - internal/testingtproxy
+  - internal/writer
+  - reporters
+  - reporters/stenographer
+  - types
+- name: github.com/onsi/gomega
+  version: 4dfabf7db2e4147ec99a86db32b2f2a3484cfee8
+  subpackages:
+  - format
+  - internal/assertion
+  - internal/asyncassertion
+  - internal/testingtsupport
+  - matchers
+  - matchers/support/goraph/bipartitegraph
+  - matchers/support/goraph/edge
+  - matchers/support/goraph/node
+  - matchers/support/goraph/util
+  - types
