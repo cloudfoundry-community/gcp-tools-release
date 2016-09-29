@@ -1,7 +1,7 @@
 package nozzle_test
 
 import (
-	"github.com/evandbrown/gcp-tools-boshrelease/src/stackdriver-nozzle/nozzle"
+	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/nozzle"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

@@ -1,4 +1,4 @@
-package: github.com/evandbrown/gcp-tools-boshrelease/src/stackdriver-nozzle
+package: github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle
 import:
   - package: cloud.google.com/go
     subpackages:

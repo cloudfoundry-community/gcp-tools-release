@@ -1,5 +1,5 @@
-hash: 96642de519b41d55fff0dff3b4e9f12d8f9b56236262e61ef452d33913b98306
-updated: 2016-09-28T11:12:37.628392549-07:00
+hash: 57979f1c16f2da4e1453cc6b1374421466dcf9c083b6d4e183232970311ba4af
+updated: 2016-09-29T11:52:31.798701004-07:00
 imports:
 - name: cloud.google.com/go
   version: 39c34167480d9b17fb60788334bffd5e116d6799
@@ -10,6 +10,12 @@ imports:
   - logging
   - logging/apiv2
   - logging/internal
+- name: github.com/alecthomas/template
+  version: b867cc6ab45cece8143cfcc6fc9c77cf3f2c23c0
+  subpackages:
+  - parse
+- name: github.com/alecthomas/units
+  version: 6b4e7dc5e3143b85ea77909c72caf89416fc2915
 - name: github.com/boltdb/bolt
   version: 4d30731e9122988d2012a9574c43f80f054a0d3b
 - name: github.com/cloudfoundry-community/firehose-to-syslog
@@ -123,6 +129,8 @@ imports:
   - naming
   - peer
   - transport
+- name: gopkg.in/alecthomas/kingpin.v2
+  version: e9044be3ab2a8e11d4e1f418d12f0790d57e8d70
 testImports:
 - name: github.com/onsi/ginkgo
   version: 45a5f6ffb2a14e4f29698c16ae4c0a34018a8951

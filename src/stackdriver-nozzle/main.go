@@ -1,11 +1,10 @@
 package main
 
 import (
-	"github.com/evandbrown/gcp-tools-boshrelease/src/stackdriver-nozzle/firehose"
-	"github.com/evandbrown/gcp-tools-boshrelease/src/stackdriver-nozzle/stackdriver"
-
-	"github.com/evandbrown/gcp-tools-boshrelease/src/stackdriver-nozzle/dev"
-	"github.com/evandbrown/gcp-tools-boshrelease/src/stackdriver-nozzle/nozzle"
+	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/firehose"
+	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
+	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/dev"
+	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/nozzle"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 

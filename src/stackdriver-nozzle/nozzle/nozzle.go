@@ -1,7 +1,7 @@
 package nozzle
 
 import (
-	"github.com/evandbrown/gcp-tools-boshrelease/src/stackdriver-nozzle/stackdriver"
+	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
 	"fmt"
 )
 
