@@ -11,8 +11,8 @@ import (
 
 var (
 	debug = kingpin.Flag("debug", "send events to stdout").
+		Default("false").
 		OverrideDefaultFromEnvar("DEBUG").
-		Default(false).
 		Bool()
 	apiEndpoint = kingpin.Flag("api-endpoint",
 		"CF API endpoint (use https://api.bosh-lite.com for BOSH Lite)").
