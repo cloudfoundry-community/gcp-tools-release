@@ -51,7 +51,6 @@ func main() {
 	} else {
 		println("Sending firehose to Stackdriver")
 		sdClient := stackdriver.NewClient(*projectID)
-		//sdClient.Post("hello world 5")
 		n := nozzle.Nozzle{StackdriverClient: sdClient}
 
 		client.StartListening(&n)
