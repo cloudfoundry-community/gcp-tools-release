@@ -23,7 +23,7 @@ func (n *Nozzle) ShipEvents(event map[string]interface{}, _ string /* TODO resea
 		n.StackdriverClient.PostMetric(name.(string), count.(float64))
 
 	default:
-		n.StackdriverClient.Post(event, map[string]string{
+		n.StackdriverClient.PostLog(event, map[string]string{
 			"event_type": fmt.Sprintf("%v", event["event_type"]),
 		})
 	}

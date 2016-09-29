@@ -15,7 +15,7 @@ import (
 )
 
 type Client interface {
-	Post(payload interface{}, labels map[string]string)
+	PostLog(payload interface{}, labels map[string]string)
 	PostMetric(name string, value float64) error
 }
 
@@ -66,7 +66,7 @@ func newLogger(ctx context.Context, projectID string, batchCount int, batchDurat
 	return logger, nil
 }
 
-func (s *client) Post(payload interface{}, _ map[string]string) {
+func (s *client) PostLog(payload interface{}, _ map[string]string) {
 	entry := logging.Entry{
 		Payload: payload,
 	}
