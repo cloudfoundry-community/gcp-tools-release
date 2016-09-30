@@ -69,7 +69,7 @@ func newLogger(ctx context.Context, projectID string, batchCount int, batchDurat
 func (s *client) PostLog(payload interface{}, labels map[string]string) {
 	entry := logging.Entry{
 		Payload: payload,
-		Labels: labels,
+		Labels:  labels,
 	}
 	s.logger.Log(entry)
 }

@@ -1,17 +1,17 @@
 package nozzle_test
 
 import (
+	"github.com/cloudfoundry/sonde-go/events"
 	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/nozzle"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/cloudfoundry/sonde-go/events"
 )
 
 var _ = Describe("Nozzle", func() {
 
 	var (
 		mockStackdriverClient *MockStackdriverClient
-		subject nozzle.Nozzle
+		subject               nozzle.Nozzle
 	)
 
 	BeforeEach(func() {
@@ -85,12 +85,12 @@ var _ = Describe("Nozzle", func() {
 			metricType := events.Envelope_ValueMetric
 
 			valueMetric := events.ValueMetric{
-				Name: &metricName,
+				Name:  &metricName,
 				Value: &metricValue,
 			}
 
 			envelope := &events.Envelope{
-				EventType: &metricType,
+				EventType:   &metricType,
 				ValueMetric: &valueMetric,
 			}
 
@@ -99,7 +99,7 @@ var _ = Describe("Nozzle", func() {
 			Expect(name).To(Equal(metricName))
 			Expect(value).To(Equal(metricValue))
 			Expect(labels).To(Equal(map[string]string{
-				"event_type" : "ValueMetric",
+				"event_type": "ValueMetric",
 			}))
 		})
 	})
