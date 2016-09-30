@@ -102,7 +102,6 @@ func (s *client) PostMetric(name string, value float64) error {
 						},
 					},
 				},
-				//MetricKind: google_api.MetricDescriptor_CUMULATIVE,
 			},
 		},
 	}
