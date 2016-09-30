@@ -46,7 +46,7 @@ func (c *client) StartListening(fh FirehoseHandler) error {
 	refresher := CfClientTokenRefresh{cfClient: cfClient}
 	cfConsumer.SetIdleTimeout(time.Duration(30) * time.Second)
 	cfConsumer.RefreshTokenFrom(&refresher)
-	messages, errs := cfConsumer.Firehose("test", "")
+	messages, errs := cfConsumer.FirehoseWithoutReconnect("test", "")
 
 	for {
 		select {
