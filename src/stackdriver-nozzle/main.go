@@ -1,11 +1,11 @@
 package main
 
 import (
-	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/dev"
 	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/firehose"
 	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/nozzle"
 	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
 	"gopkg.in/alecthomas/kingpin.v2"
+	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/dev"
 )
 
 var (
@@ -63,4 +63,23 @@ func main() {
 
 		client.StartListening(&n)
 	}
+
+	//req := &monitoringpb.ListMetricDescriptorsRequest{
+	//	Name:   "projects/evandbrown17",
+	//	Filter: "metric.type = starts_with(\"custom.googleapis.com/\")",
+	//}
+	//it := c.ListMetricDescriptors(ctx, req)
+	//for {
+	//	resp, err := it.Next()
+	//	if err == monitoring.Done {
+	//		break
+	//	}
+	//	if err != nil {
+	//		// TODO: Handle error.
+	//		panic(err)
+	//	}
+	//	// TODO: Use resp.
+	//	fmt.Printf("%+v\n", *resp)
+	//}
+
 }
