@@ -103,7 +103,7 @@ type MockStackdriverClient struct {
 	PostMetricFn func(string, float64) error
 }
 
-func (m *MockStackdriverClient) Post(payload interface{}, labels map[string]string) {
+func (m *MockStackdriverClient) PostLog(payload interface{}, labels map[string]string) {
 	if m.PostLogFn != nil {
 		m.PostLogFn(payload, labels)
 	}
