@@ -10,7 +10,7 @@ import (
 )
 
 type FirehoseHandler interface {
-	HandleEvent(*events.Envelope)
+	HandleEvent(*events.Envelope) error
 }
 
 type Client interface {
@@ -51,7 +51,10 @@ func (c *client) StartListening(fh FirehoseHandler) error {
 	for {
 		select {
 		case envelope := <-messages:
-			fh.HandleEvent(envelope)
+			err := fh.HandleEvent(envelope)
+			if err != nil {
+				return err
+			}
 		case err := <-errs:
 			return err
 		}

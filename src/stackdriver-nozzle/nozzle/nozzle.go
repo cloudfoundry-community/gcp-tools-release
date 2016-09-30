@@ -9,7 +9,7 @@ type Nozzle struct {
 	StackdriverClient stackdriver.Client
 }
 
-func (n *Nozzle) HandleEvent(envelope *events.Envelope) {
+func (n *Nozzle) HandleEvent(envelope *events.Envelope) error {
 	labels := map[string]string{
 		"event_type": envelope.GetEventType().String(),
 	}
@@ -20,10 +20,9 @@ func (n *Nozzle) HandleEvent(envelope *events.Envelope) {
 		value := valueMetric.GetValue()
 
 		err := n.StackdriverClient.PostMetric(name, value, labels)
-		if err != nil {
-			panic(err)
-		}
+		return err
 	default:
 		n.StackdriverClient.PostLog(envelope, labels)
+		return nil
 	}
 }

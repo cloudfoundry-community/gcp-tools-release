@@ -1,6 +1,7 @@
 package nozzle_test
 
 import (
+	"errors"
 	"github.com/cloudfoundry/sonde-go/events"
 	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/nozzle"
 	. "github.com/onsi/ginkgo"
@@ -68,6 +69,8 @@ var _ = Describe("Nozzle", func() {
 	})
 
 	Context("metrics", func() {
+		var envelope *events.Envelope
+
 		It("should post the metric", func() {
 			var name string
 			var value float64
@@ -89,18 +92,30 @@ var _ = Describe("Nozzle", func() {
 				Value: &metricValue,
 			}
 
-			envelope := &events.Envelope{
+			envelope = &events.Envelope{
 				EventType:   &metricType,
 				ValueMetric: &valueMetric,
 			}
 
-			subject.HandleEvent(envelope)
+			err := subject.HandleEvent(envelope)
+			Expect(err).To(BeNil())
 
 			Expect(name).To(Equal(metricName))
 			Expect(value).To(Equal(metricValue))
 			Expect(labels).To(Equal(map[string]string{
 				"event_type": "ValueMetric",
 			}))
+		})
+
+		It("returns error if client errors out", func() {
+			mockStackdriverClient.PostMetricFn = func(string, float64, map[string]string) error {
+				return errors.New("fail")
+			}
+
+			err := subject.HandleEvent(envelope)
+
+			Expect(err).NotTo(BeNil())
+			Expect(err.Error()).To(Equal("fail"))
 		})
 	})
 })
