@@ -12,6 +12,7 @@ import (
 	"google.golang.org/api/option"
 	"google.golang.org/genproto/googleapis/api/metric"
 	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
+	"path"
 )
 
 type Client interface {
@@ -76,7 +77,7 @@ func (s *client) PostLog(payload interface{}, labels map[string]string) {
 
 func (s *client) PostMetric(name string, value float64, labels map[string]string) error {
 	projectName := fmt.Sprintf("projects/%s", s.projectID)
-	metricType := fmt.Sprintf("custom.googleapis.com/%s", name)
+	metricType := path.Join("custom.googleapis.com", name)
 
 	req := &monitoringpb.CreateTimeSeriesRequest{
 		Name: projectName,
