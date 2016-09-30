@@ -10,15 +10,20 @@ type Nozzle struct {
 }
 
 func (n *Nozzle) HandleEvent(envelope *events.Envelope) {
-	labels := map[string]string{}
+	labels := map[string]string{
+		"event_type": envelope.GetEventType().String(),
+	}
 	switch envelope.GetEventType() {
 	case events.Envelope_ValueMetric:
 		valueMetric := envelope.GetValueMetric()
 		name := valueMetric.GetName()
 		value := valueMetric.GetValue()
-		n.StackdriverClient.PostMetric(name, value)
+
+		err := n.StackdriverClient.PostMetric(name, value, labels)
+		if err != nil {
+			panic(err)
+		}
 	default:
-		labels["event_type"] = envelope.GetEventType().String()
 		n.StackdriverClient.PostLog(envelope, labels)
 	}
 }

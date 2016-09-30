@@ -53,7 +53,7 @@ func (c *client) StartListening(fh FirehoseHandler) error {
 		case envelope := <-messages:
 			fh.HandleEvent(envelope)
 		case err := <-errs:
-			panic(err)
+			return err
 		}
 	}
 }
