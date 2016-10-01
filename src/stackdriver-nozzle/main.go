@@ -61,6 +61,7 @@ func main() {
 
 		err = client.StartListening(&n)
 	}
+
 	if err != nil {
 		panic(err)
 	}
