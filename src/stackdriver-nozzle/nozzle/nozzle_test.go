@@ -39,7 +39,7 @@ var _ = Describe("Nozzle", func() {
 
 			subject.HandleEvent(envelope)
 
-			Expect(postedEvent).To(Equal(envelope))
+			Expect(postedEvent).To(Equal(nozzle.Envelope{envelope}))
 		})
 
 		It("ships multiple events", func() {
