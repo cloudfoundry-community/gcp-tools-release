@@ -1,20 +1,21 @@
 package nozzle
 
 import (
-	"github.com/cloudfoundry/sonde-go/events"
-	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
 	"fmt"
 	"strings"
+
+	"github.com/cloudfoundry/sonde-go/events"
+	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
 )
 
 type PostContainerMetricError struct {
-	Errors map[string]error
+	Errors []error
 }
 
 func (e *PostContainerMetricError) Error() string {
 	errors := []string{}
-	for name, err := range(e.Errors) {
-		errors = append(errors, fmt.Sprintf("%v: %v", name, err.Error()))
+	for _, err := range e.Errors {
+		errors = append(errors, err.Error())
 	}
 	return strings.Join(errors, "\n")
 }
@@ -49,36 +50,21 @@ func (n *Nozzle) postContainerMetrics(envelope Envelope) *PostContainerMetricErr
 	labels := envelope.Labels()
 	labels["applicationId"] = containerMetric.GetApplicationId()
 
-	errors := map[string]error{}
+	errorsCh := make(chan error)
 
-	err := n.StackdriverClient.PostMetric("diskBytesQuota", float64(containerMetric.GetDiskBytesQuota()), labels)
-	if err != nil {
-		errors["diskBytesQuota"] = err
-	}
+	n.postContainerMetric(errorsCh, "diskBytesQuota", float64(containerMetric.GetDiskBytesQuota()), labels)
+	n.postContainerMetric(errorsCh, "instanceIndex", float64(containerMetric.GetInstanceIndex()), labels)
+	n.postContainerMetric(errorsCh, "cpuPercentage", float64(containerMetric.GetCpuPercentage()), labels)
+	n.postContainerMetric(errorsCh, "diskBytes", float64(containerMetric.GetDiskBytes()), labels)
+	n.postContainerMetric(errorsCh, "memoryBytes", float64(containerMetric.GetMemoryBytes()), labels)
+	n.postContainerMetric(errorsCh, "memoryBytesQuota", float64(containerMetric.GetMemoryBytesQuota()), labels)
 
-	err = n.StackdriverClient.PostMetric("instanceIndex", float64(containerMetric.GetInstanceIndex()), labels)
-	if err != nil {
-		errors["instanceIndex"] = err
-	}
-
-	err = n.StackdriverClient.PostMetric("cpuPercentage", float64(containerMetric.GetCpuPercentage()), labels)
-	if err != nil {
-		errors["cpuPercentage"] = err
-	}
-
-	err = n.StackdriverClient.PostMetric("diskBytes", float64(containerMetric.GetDiskBytes()), labels)
-	if err != nil {
-		errors["diskBytes"] = err
-	}
-
-	err = n.StackdriverClient.PostMetric("memoryBytes", float64(containerMetric.GetMemoryBytes()), labels)
-	if err != nil {
-		errors["memoryBytes"] = err
-	}
-
-	err = n.StackdriverClient.PostMetric("memoryBytesQuota", float64(containerMetric.GetMemoryBytesQuota()), labels)
-	if err != nil {
-		errors["memoryBytesQuota"] = err
+	errors := []error{}
+	for i := 0; i < 6; i++ {
+		err := <-errorsCh
+		if err != nil {
+			errors = append(errors, err)
+		}
 	}
 
 	if len(errors) == 0 {
@@ -88,4 +74,15 @@ func (n *Nozzle) postContainerMetrics(envelope Envelope) *PostContainerMetricErr
 			Errors: errors,
 		}
 	}
+}
+
+func (n *Nozzle) postContainerMetric(errorsCh chan error, name string, value float64, labels map[string]string) {
+	go func() {
+		err := n.StackdriverClient.PostMetric(name, value, labels)
+		if err != nil {
+			errorsCh <- fmt.Errorf("%v: %v", name, err.Error())
+		} else {
+			errorsCh <- nil
+		}
+	}()
 }
