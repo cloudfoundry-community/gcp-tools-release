@@ -112,33 +112,29 @@ var _ = Describe("Nozzle", func() {
 				"applicationId": applicationId,
 			}
 			Expect(len(sdClient.postedMetrics)).To(Equal(6))
-			Expect(sdClient.postedMetrics).To(ContainElement(
+			Expect(sdClient.postedMetrics).To(ConsistOf(
 				PostedMetric{"diskBytesQuota", float64(1073741824), labels},
-			))
-			Expect(sdClient.postedMetrics).To(ContainElement(
 				PostedMetric{"instanceIndex", float64(0), labels},
-			))
-			Expect(sdClient.postedMetrics).To(ContainElement(
 				PostedMetric{"cpuPercentage", 0.061651273460637, labels},
-			))
-			Expect(sdClient.postedMetrics).To(ContainElement(
 				PostedMetric{"diskBytes", float64(164634624), labels},
-			))
-			Expect(sdClient.postedMetrics).To(ContainElement(
 				PostedMetric{"memoryBytes", float64(16601088), labels},
-			))
-			Expect(sdClient.postedMetrics).To(ContainElement(
 				PostedMetric{"memoryBytesQuota", float64(33554432), labels},
 			))
 		})
 
 		It("returns error if client errors out", func() {
 			sdClient.postMetricError = errors.New("fail")
+			metricType := events.Envelope_ContainerMetric
+			envelope = &events.Envelope{
+				EventType:   &metricType,
+				ValueMetric: nil,
+			}
 
 			err := subject.HandleEvent(envelope)
 
 			Expect(err).NotTo(BeNil())
-			Expect(err.Error()).To(Equal("fail"))
+			Expect(err.Error()).To(ContainSubstring("diskBytesQuota: fail"))
+			Expect(err.Error()).To(ContainSubstring("memoryBytesQuota: fail"))
 		})
 	})
 })
