@@ -2,6 +2,7 @@ package nozzle_test
 
 import (
 	"errors"
+
 	"github.com/cloudfoundry/sonde-go/events"
 	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/nozzle"
 	. "github.com/onsi/ginkgo"
