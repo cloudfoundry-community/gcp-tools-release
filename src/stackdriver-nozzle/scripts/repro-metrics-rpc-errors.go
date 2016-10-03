@@ -1,4 +1,4 @@
-package dev
+package main
 
 import (
 	"errors"
@@ -14,39 +14,7 @@ import (
 	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
 )
 
-func ClearMetricDescriptors() {
-	ctx := context.Background()
-	metricClient, err := monitoring.NewMetricClient(ctx, option.WithScopes("https://www.googleapis.com/auth/monitoring"))
-	if err != nil {
-		panic(err)
-	}
-
-	req := &monitoringpb.ListMetricDescriptorsRequest{
-		Name:   "projects/evandbrown17",
-		Filter: "metric.type = starts_with(\"custom.googleapis.com/\")",
-	}
-	it := metricClient.ListMetricDescriptors(ctx, req)
-	for {
-		resp, err := it.Next()
-		if err == monitoring.Done {
-			break
-		}
-		if err != nil {
-			// TODO: Handle error.
-			panic(err)
-		}
-
-		req := &monitoringpb.DeleteMetricDescriptorRequest{
-			Name: resp.Name,
-		}
-		err = metricClient.DeleteMetricDescriptor(ctx, req)
-		if err != nil {
-			panic(err)
-		}
-	}
-}
-
-func SendTimeSeries() {
+func main() {
 	ctx := context.Background()
 	metricClient, _ := monitoring.NewMetricClient(ctx, option.WithScopes("https://www.googleapis.com/auth/monitoring.write"))
 
