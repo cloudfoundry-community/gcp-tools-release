@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 
+	"os"
+
 	"cloud.google.com/go/monitoring/apiv3"
 	"golang.org/x/net/context"
 	"google.golang.org/api/option"
@@ -16,8 +18,10 @@ func main() {
 		panic(err)
 	}
 
+	projectID := os.Getenv("PROJECT_ID")
+
 	req := &monitoringpb.ListMetricDescriptorsRequest{
-		Name:   "projects/evandbrown17",
+		Name:   fmt.Sprintf("projects/%s", projectID),
 		Filter: "metric.type = starts_with(\"custom.googleapis.com/\")",
 	}
 	it := metricClient.ListMetricDescriptors(ctx, req)
@@ -31,7 +35,7 @@ func main() {
 			panic(err)
 		}
 
-		fmt.Printf("Clearing %v", resp.Name)
+		fmt.Printf("Clearing %v\n", resp.Name)
 		req := &monitoringpb.DeleteMetricDescriptorRequest{
 			Name: resp.Name,
 		}

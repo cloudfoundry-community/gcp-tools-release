@@ -1,16 +1,22 @@
 package main
 
 import (
+	"os"
+
 	"github.com/cloudfoundry/sonde-go/events"
 	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/firehose"
-	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/config"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 func main() {
 	kingpin.Parse()
 
-	client := firehose.NewClient(*config.ApiEndpoint, *config.Username, *config.Password, *config.SkipSSLValidation)
+	apiEndpoint := os.Getenv("API_ENDPOINT")
+	username := os.Getenv("FIREHOSE_USERNAME")
+	password := os.Getenv("FIREHOSE_PASSWORD")
+	_, skipSSLValidation := os.LookupEnv("SKIP_SSL_VALIDATION")
+
+	client := firehose.NewClient(apiEndpoint, username, password, skipSSLValidation)
 
 	err := client.StartListening(&StdOut{})
 	if err != nil {
