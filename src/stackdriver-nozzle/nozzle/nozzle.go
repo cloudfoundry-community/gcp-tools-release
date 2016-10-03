@@ -11,17 +11,53 @@ type Nozzle struct {
 
 func (n *Nozzle) HandleEvent(eventsEnvelope *events.Envelope) error {
 	envelope := Envelope{eventsEnvelope}
+	labels := envelope.Labels()
 
 	switch envelope.GetEventType() {
+	case events.Envelope_ContainerMetric:
+		return n.postContainerMetrics(envelope)
 	case events.Envelope_ValueMetric:
 		valueMetric := envelope.GetValueMetric()
 		name := valueMetric.GetName()
 		value := valueMetric.GetValue()
 
-		err := n.StackdriverClient.PostMetric(name, value, envelope.Labels())
+		err := n.StackdriverClient.PostMetric(name, value, labels)
 		return err
 	default:
-		n.StackdriverClient.PostLog(envelope, envelope.Labels())
+		n.StackdriverClient.PostLog(envelope, labels)
 		return nil
 	}
+}
+
+func (n *Nozzle) postContainerMetrics(envelope Envelope) error {
+	containerMetric := envelope.GetContainerMetric()
+
+	labels := envelope.Labels()
+	labels["applicationId"] = containerMetric.GetApplicationId()
+
+	err := n.StackdriverClient.PostMetric("diskBytesQuota", float64(containerMetric.GetDiskBytesQuota()), labels)
+	if err != nil {
+		return err
+	}
+	err = n.StackdriverClient.PostMetric("instanceIndex", float64(containerMetric.GetInstanceIndex()), labels)
+	if err != nil {
+		return err
+	}
+	err = n.StackdriverClient.PostMetric("cpuPercentage", float64(containerMetric.GetCpuPercentage()), labels)
+	if err != nil {
+		return err
+	}
+	err = n.StackdriverClient.PostMetric("diskBytes", float64(containerMetric.GetDiskBytes()), labels)
+	if err != nil {
+		return err
+	}
+	err = n.StackdriverClient.PostMetric("memoryBytes", float64(containerMetric.GetMemoryBytes()), labels)
+	if err != nil {
+		return err
+	}
+	err = n.StackdriverClient.PostMetric("memoryBytesQuota", float64(containerMetric.GetMemoryBytesQuota()), labels)
+	if err != nil {
+		return err
+	}
+	return nil
 }

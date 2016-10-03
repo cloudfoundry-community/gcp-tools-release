@@ -79,6 +79,59 @@ var _ = Describe("Nozzle", func() {
 			}))
 		})
 
+		It("should post the container metrics", func() {
+			diskBytesQuota := uint64(1073741824)
+			instanceIndex :=int32(0)
+			cpuPercentage := 0.061651273460637
+			diskBytes := uint64(164634624)
+			memoryBytes := uint64(16601088)
+			memoryBytesQuota := uint64(33554432)
+			applicationId := "ee2aa52e-3c8a-4851-b505-0cb9fe24806e"
+
+			metricType := events.Envelope_ContainerMetric
+			containerMetric := events.ContainerMetric{
+				DiskBytesQuota:   &diskBytesQuota,
+				InstanceIndex:    &instanceIndex,
+				CpuPercentage:    &cpuPercentage,
+				DiskBytes:        &diskBytes,
+				MemoryBytes:      &memoryBytes,
+				MemoryBytesQuota: &memoryBytesQuota,
+				ApplicationId:    &applicationId,
+			}
+
+			envelope = &events.Envelope{
+				EventType:       &metricType,
+				ContainerMetric: &containerMetric,
+			}
+
+			err := subject.HandleEvent(envelope)
+			Expect(err).To(BeNil())
+
+			labels := map[string]string{
+				"event_type":    "ContainerMetric",
+				"applicationId": applicationId,
+			}
+			Expect(len(sdClient.postedMetrics)).To(Equal(6))
+			Expect(sdClient.postedMetrics).To(ContainElement(
+				PostedMetric{"diskBytesQuota", float64(1073741824), labels},
+			))
+			Expect(sdClient.postedMetrics).To(ContainElement(
+				PostedMetric{"instanceIndex", float64(0), labels},
+			))
+			Expect(sdClient.postedMetrics).To(ContainElement(
+				PostedMetric{"cpuPercentage", 0.061651273460637, labels},
+			))
+			Expect(sdClient.postedMetrics).To(ContainElement(
+				PostedMetric{"diskBytes", float64(164634624), labels},
+			))
+			Expect(sdClient.postedMetrics).To(ContainElement(
+				PostedMetric{"memoryBytes", float64(16601088), labels},
+			))
+			Expect(sdClient.postedMetrics).To(ContainElement(
+				PostedMetric{"memoryBytesQuota", float64(33554432), labels},
+			))
+		})
+
 		It("returns error if client errors out", func() {
 			sdClient.postMetricError = errors.New("fail")
 
