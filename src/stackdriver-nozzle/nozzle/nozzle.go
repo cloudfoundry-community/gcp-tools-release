@@ -6,6 +6,7 @@ import (
 
 	"github.com/cloudfoundry/sonde-go/events"
 	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
+	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/serializer"
 )
 
 type PostContainerMetricError struct {
@@ -22,6 +23,7 @@ func (e *PostContainerMetricError) Error() string {
 
 type Nozzle struct {
 	StackdriverClient stackdriver.Client
+	Serializer serializer.Serializer
 }
 
 func (n *Nozzle) HandleEvent(eventsEnvelope *events.Envelope) error {

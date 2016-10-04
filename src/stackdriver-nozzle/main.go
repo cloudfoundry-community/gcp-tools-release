@@ -5,6 +5,8 @@ import (
 	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/nozzle"
 	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
 	"gopkg.in/alecthomas/kingpin.v2"
+	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
+	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/serializer"
 )
 
 var (
@@ -45,7 +47,10 @@ func main() {
 	client := firehose.NewClient(*apiEndpoint, *username, *password, *skipSSLValidation)
 
 	sdClient := stackdriver.NewClient(*projectID, *batchCount, *batchDuration)
-	n := nozzle.Nozzle{StackdriverClient: sdClient}
+	n := nozzle.Nozzle{
+		StackdriverClient: sdClient,
+		Serializer: serializer.NewSerializer(caching.NewCachingEmpty()),
+	}
 
 	err := client.StartListening(&n)
 

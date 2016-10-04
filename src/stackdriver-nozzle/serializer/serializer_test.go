@@ -47,7 +47,7 @@ var _ = Describe("Serializer", func() {
 		labels := log.GetLabels()
 		Expect(labels).To(Equal(map[string]string{
 			"origin":     origin,
-			"eventType": eventType.String(),
+			"eventType":  eventType.String(),
 			"deployment": deployment,
 			"job":        job,
 			"index":      index,
@@ -80,11 +80,71 @@ var _ = Describe("Serializer", func() {
 		labels := log.GetLabels()
 
 		Expect(labels).To(Equal(map[string]string{
-			"origin":     origin,
+			"origin":    origin,
 			"eventType": eventType.String(),
-			"job":        job,
-			"index":      index,
+			"job":       job,
+			"index":     index,
 		}))
+	})
+
+	Context("isLog", func() {
+		It("HttpStartStop is log", func() {
+			eventType := events.Envelope_HttpStartStop
+
+			envelope := &events.Envelope{
+				EventType: &eventType,
+			}
+			Expect(subject.IsLog(envelope)).To(BeTrue())
+		})
+
+		It("LogMessage is log", func() {
+			eventType := events.Envelope_LogMessage
+
+			envelope := &events.Envelope{
+				EventType: &eventType,
+			}
+			Expect(subject.IsLog(envelope)).To(BeTrue())
+		})
+
+		It("ValueMetric is *NOT* log", func() {
+			eventType := events.Envelope_ValueMetric
+
+			envelope := &events.Envelope{
+				EventType: &eventType,
+			}
+			Expect(subject.IsLog(envelope)).To(BeFalse())
+		})
+
+		XIt("CounterEvent is *NOT* log", func() {
+			eventType := events.Envelope_CounterEvent
+
+			envelope := &events.Envelope{
+				EventType: &eventType,
+			}
+			Expect(subject.IsLog(envelope)).To(BeFalse())
+
+		})
+
+		It("Error is log", func() {
+			eventType := events.Envelope_Error
+
+			envelope := &events.Envelope{
+				EventType: &eventType,
+			}
+			Expect(subject.IsLog(envelope)).To(BeTrue())
+
+		})
+
+		It("ContainerMetric is *NOT* log", func() {
+			eventType := events.Envelope_ContainerMetric
+
+			envelope := &events.Envelope{
+				EventType: &eventType,
+			}
+			Expect(subject.IsLog(envelope)).To(BeFalse())
+
+		})
+
 	})
 
 	Context("Metadata", func() {

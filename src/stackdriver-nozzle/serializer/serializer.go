@@ -4,6 +4,7 @@ import (
 	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
 	"github.com/cloudfoundry-community/firehose-to-syslog/utils"
 	"github.com/cloudfoundry/sonde-go/events"
+	"fmt"
 )
 
 type Metric interface {
@@ -20,6 +21,7 @@ type Log interface {
 type Serializer interface {
 	GetLog(*events.Envelope) Log
 	GetMetrics(*events.Envelope) []Metric
+	IsLog(*events.Envelope) bool
 }
 
 type cachingClientSerializer struct {
@@ -67,6 +69,20 @@ func (s *cachingClientSerializer) GetMetrics(e *events.Envelope) []Metric {
 		name:   e.GetValueMetric().GetName(),
 		value:  e.GetValueMetric().GetValue(),
 		labels: s.buildLabels(e)}}
+}
+
+func (s *cachingClientSerializer) IsLog(e *events.Envelope) bool {
+	switch *e.EventType {
+	case events.Envelope_HttpStartStop, events.Envelope_LogMessage, events.Envelope_Error:
+		return true
+	case events.Envelope_ValueMetric, events.Envelope_ContainerMetric:
+		return false
+	case events.Envelope_CounterEvent:
+		//Not yet implemented as a metric
+		return true
+	default:
+		panic(fmt.Errorf("Unknown event type: %v", e.EventType))
+	}
 }
 
 func getApplicationId(envelope *events.Envelope) string {
