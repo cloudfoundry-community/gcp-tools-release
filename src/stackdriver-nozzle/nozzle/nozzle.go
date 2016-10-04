@@ -9,11 +9,11 @@ import (
 	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
 )
 
-type PostContainerMetricError struct {
+type PostMetricError struct {
 	Errors []error
 }
 
-func (e *PostContainerMetricError) Error() string {
+func (e *PostMetricError) Error() string {
 	errors := []string{}
 	for _, err := range e.Errors {
 		errors = append(errors, err.Error())
@@ -38,7 +38,7 @@ func (n *Nozzle) HandleEvent(envelope *events.Envelope) error {
 	}
 }
 
-func (n *Nozzle) postMetrics(metrics []*serializer.Metric) *PostContainerMetricError {
+func (n *Nozzle) postMetrics(metrics []*serializer.Metric) error {
 	errorsCh := make(chan error)
 
 	for _, metric := range metrics {
@@ -56,7 +56,7 @@ func (n *Nozzle) postMetrics(metrics []*serializer.Metric) *PostContainerMetricE
 	if len(errors) == 0 {
 		return nil
 	} else {
-		return &PostContainerMetricError{
+		return &PostMetricError{
 			Errors: errors,
 		}
 	}
