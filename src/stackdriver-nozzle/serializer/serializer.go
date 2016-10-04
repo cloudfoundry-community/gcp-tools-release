@@ -89,7 +89,7 @@ func (s *cachingClientSerializer) buildLabels(envelope *events.Envelope) map[str
 	}
 
 	if envelope.EventType != nil {
-		labels["event_type"] = envelope.GetEventType().String()
+		labels["eventType"] = envelope.GetEventType().String()
 	}
 
 	if envelope.Deployment != nil {
@@ -109,7 +109,7 @@ func (s *cachingClientSerializer) buildLabels(envelope *events.Envelope) map[str
 	}
 
 	if appId := getApplicationId(envelope); appId != "" {
-		labels["application_id"] = appId
+		labels["applicationId"] = appId
 	}
 
 	return labels

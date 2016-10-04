@@ -48,7 +48,6 @@ func (n *Nozzle) postContainerMetrics(envelope Envelope) *PostContainerMetricErr
 	containerMetric := envelope.GetContainerMetric()
 
 	labels := envelope.Labels()
-	labels["applicationId"] = containerMetric.GetApplicationId()
 
 	errorsCh := make(chan error)
 

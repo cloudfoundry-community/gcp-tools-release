@@ -31,7 +31,7 @@ var _ = Describe("Nozzle", func() {
 		postedLog := sdClient.postedLogs[0]
 		Expect(postedLog.payload).To(Equal(nozzle.Envelope{envelope}))
 		Expect(postedLog.labels).To(Equal(map[string]string{
-			"event_type": "HttpStartStop",
+			"eventType": "HttpStartStop",
 		}))
 	})
 
@@ -59,7 +59,7 @@ var _ = Describe("Nozzle", func() {
 			Expect(postedMetric.name).To(Equal(metricName))
 			Expect(postedMetric.value).To(Equal(metricValue))
 			Expect(postedMetric.labels).To(Equal(map[string]string{
-				"event_type": "ValueMetric",
+				"eventType": "ValueMetric",
 			}))
 		})
 
@@ -92,7 +92,7 @@ var _ = Describe("Nozzle", func() {
 			Expect(err).To(BeNil())
 
 			labels := map[string]string{
-				"event_type":    "ContainerMetric",
+				"eventType":    "ContainerMetric",
 				"applicationId": applicationId,
 			}
 			Expect(len(sdClient.postedMetrics)).To(Equal(6))

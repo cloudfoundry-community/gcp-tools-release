@@ -29,7 +29,7 @@ func (e *Envelope) Labels() map[string]string {
 	}
 
 	if e.EventType != nil {
-		labels["event_type"] = e.GetEventType().String()
+		labels["eventType"] = e.GetEventType().String()
 	}
 
 	if e.Deployment != nil {
@@ -49,7 +49,7 @@ func (e *Envelope) Labels() map[string]string {
 	}
 
 	if appId := e.getApplicationId(); appId != "" {
-		labels["application_id"] = appId
+		labels["applicationId"] = appId
 	}
 
 	return labels

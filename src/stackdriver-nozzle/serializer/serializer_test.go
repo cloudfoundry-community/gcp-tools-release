@@ -47,7 +47,7 @@ var _ = Describe("Serializer", func() {
 		labels := log.GetLabels()
 		Expect(labels).To(Equal(map[string]string{
 			"origin":     origin,
-			"event_type": eventType.String(),
+			"eventType": eventType.String(),
 			"deployment": deployment,
 			"job":        job,
 			"index":      index,
@@ -81,7 +81,7 @@ var _ = Describe("Serializer", func() {
 
 		Expect(labels).To(Equal(map[string]string{
 			"origin":     origin,
-			"event_type": eventType.String(),
+			"eventType": eventType.String(),
 			"job":        job,
 			"index":      index,
 		}))
@@ -111,7 +111,7 @@ var _ = Describe("Serializer", func() {
 				log := subject.GetLog(envelope)
 				labels := log.GetLabels()
 
-				Expect(labels["application_id"]).To(Equal(guid))
+				Expect(labels["applicationId"]).To(Equal(guid))
 			})
 
 			It("LogMessage adds app id", func() {
@@ -127,7 +127,7 @@ var _ = Describe("Serializer", func() {
 
 				log := subject.GetLog(envelope)
 				labels := log.GetLabels()
-				Expect(labels["application_id"]).To(Equal(guid))
+				Expect(labels["applicationId"]).To(Equal(guid))
 
 			})
 
@@ -145,7 +145,7 @@ var _ = Describe("Serializer", func() {
 				valueMetric := metrics[0]
 
 				labels := valueMetric.GetLabels()
-				Expect(labels).NotTo(HaveKey("application_id"))
+				Expect(labels).NotTo(HaveKey("applicationId"))
 
 			})
 
@@ -161,7 +161,7 @@ var _ = Describe("Serializer", func() {
 				}
 
 				labels := envelope.Labels()
-				Expect(labels).NotTo(HaveKey("application_id"))
+				Expect(labels).NotTo(HaveKey("applicationId"))
 
 			})
 
@@ -176,7 +176,7 @@ var _ = Describe("Serializer", func() {
 
 				log := subject.GetLog(envelope)
 				labels := log.GetLabels()
-				Expect(labels).NotTo(HaveKey("application_id"))
+				Expect(labels).NotTo(HaveKey("applicationId"))
 
 			})
 
@@ -194,7 +194,7 @@ var _ = Describe("Serializer", func() {
 				}
 
 				labels := envelope.Labels()
-				Expect(labels["application_id"]).To(Equal(guid))
+				Expect(labels["applicationId"]).To(Equal(guid))
 			})
 		})
 	})
