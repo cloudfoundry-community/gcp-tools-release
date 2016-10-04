@@ -26,48 +26,27 @@ type Nozzle struct {
 	Serializer        serializer.Serializer
 }
 
-func (n *Nozzle) HandleEvent(eventsEnvelope *events.Envelope) error {
+func (n *Nozzle) HandleEvent(envelope *events.Envelope) error {
 
-	if n.Serializer.IsLog(eventsEnvelope) {
-		log := n.Serializer.GetLog(eventsEnvelope)
-		n.StackdriverClient.PostLog(log.GetPayload(), log.GetLabels())
+	if n.Serializer.IsLog(envelope) {
+		log := n.Serializer.GetLog(envelope)
+		n.StackdriverClient.PostLog(log.Payload, log.Labels)
 		return nil
 	} else {
-		envelope := Envelope{eventsEnvelope}
-		labels := envelope.Labels()
-
-		switch envelope.GetEventType() {
-		case events.Envelope_ContainerMetric:
-			return n.postContainerMetrics(envelope)
-		case events.Envelope_ValueMetric:
-			valueMetric := envelope.GetValueMetric()
-			name := valueMetric.GetName()
-			value := valueMetric.GetValue()
-
-			err := n.StackdriverClient.PostMetric(name, value, labels)
-			return err
-		default:
-			panic(fmt.Errorf("Unexpected metric event: %v", envelope.GetEventType()))
-		}
+		metrics := n.Serializer.GetMetrics(envelope)
+		return n.postMetrics(metrics)
 	}
 }
 
-func (n *Nozzle) postContainerMetrics(envelope Envelope) *PostContainerMetricError {
-	containerMetric := envelope.GetContainerMetric()
-
-	labels := envelope.Labels()
-
+func (n *Nozzle) postMetrics(metrics []*serializer.Metric) *PostContainerMetricError {
 	errorsCh := make(chan error)
 
-	n.postContainerMetric(errorsCh, "diskBytesQuota", float64(containerMetric.GetDiskBytesQuota()), labels)
-	n.postContainerMetric(errorsCh, "instanceIndex", float64(containerMetric.GetInstanceIndex()), labels)
-	n.postContainerMetric(errorsCh, "cpuPercentage", float64(containerMetric.GetCpuPercentage()), labels)
-	n.postContainerMetric(errorsCh, "diskBytes", float64(containerMetric.GetDiskBytes()), labels)
-	n.postContainerMetric(errorsCh, "memoryBytes", float64(containerMetric.GetMemoryBytes()), labels)
-	n.postContainerMetric(errorsCh, "memoryBytesQuota", float64(containerMetric.GetMemoryBytesQuota()), labels)
+	for _, metric := range metrics {
+		n.postMetric(errorsCh, metric.Name, metric.Value, metric.Labels)
+	}
 
 	errors := []error{}
-	for i := 0; i < 6; i++ {
+	for range metrics {
 		err := <-errorsCh
 		if err != nil {
 			errors = append(errors, err)
@@ -83,7 +62,7 @@ func (n *Nozzle) postContainerMetrics(envelope Envelope) *PostContainerMetricErr
 	}
 }
 
-func (n *Nozzle) postContainerMetric(errorsCh chan error, name string, value float64, labels map[string]string) {
+func (n *Nozzle) postMetric(errorsCh chan error, name string, value float64, labels map[string]string) {
 	go func() {
 		err := n.StackdriverClient.PostMetric(name, value, labels)
 		if err != nil {

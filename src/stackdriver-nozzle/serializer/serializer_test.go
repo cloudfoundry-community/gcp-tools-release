@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/cloudfoundry/sonde-go/events"
-	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/nozzle"
 	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/serializer"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -44,7 +43,7 @@ var _ = Describe("Serializer", func() {
 
 		log := subject.GetLog(envelope)
 
-		labels := log.GetLabels()
+		labels := log.Labels
 		Expect(labels).To(Equal(map[string]string{
 			"origin":     origin,
 			"eventType":  eventType.String(),
@@ -77,7 +76,7 @@ var _ = Describe("Serializer", func() {
 		}
 
 		log := subject.GetLog(envelope)
-		labels := log.GetLabels()
+		labels := log.Labels
 
 		Expect(labels).To(Equal(map[string]string{
 			"origin":    origin,
@@ -85,6 +84,50 @@ var _ = Describe("Serializer", func() {
 			"job":       job,
 			"index":     index,
 		}))
+	})
+
+	Context("GetMetrics", func() {
+		It("creates the proper metrics for ContainerMetric", func() {
+			diskBytesQuota := uint64(1073741824)
+			instanceIndex := int32(0)
+			cpuPercentage := 0.061651273460637
+			diskBytes := uint64(164634624)
+			memoryBytes := uint64(16601088)
+			memoryBytesQuota := uint64(33554432)
+			applicationId := "ee2aa52e-3c8a-4851-b505-0cb9fe24806e"
+
+			metricType := events.Envelope_ContainerMetric
+			containerMetric := events.ContainerMetric{
+				DiskBytesQuota:   &diskBytesQuota,
+				InstanceIndex:    &instanceIndex,
+				CpuPercentage:    &cpuPercentage,
+				DiskBytes:        &diskBytes,
+				MemoryBytes:      &memoryBytes,
+				MemoryBytesQuota: &memoryBytesQuota,
+				ApplicationId:    &applicationId,
+			}
+
+			envelope := &events.Envelope{
+				EventType:       &metricType,
+				ContainerMetric: &containerMetric,
+			}
+
+			labels := map[string]string{
+				"eventType":     "ContainerMetric",
+				"applicationId": applicationId,
+			}
+
+			metrics := subject.GetMetrics(envelope)
+
+			Expect(metrics).To(HaveLen(6))
+
+			Expect(metrics).To(ContainElement(&serializer.Metric{"diskBytesQuota", float64(1073741824), labels}))
+			Expect(metrics).To(ContainElement(&serializer.Metric{"instanceIndex", float64(0), labels}))
+			Expect(metrics).To(ContainElement(&serializer.Metric{"cpuPercentage", 0.061651273460637, labels}))
+			Expect(metrics).To(ContainElement(&serializer.Metric{"diskBytes", float64(164634624), labels}))
+			Expect(metrics).To(ContainElement(&serializer.Metric{"memoryBytes", float64(16601088), labels}))
+			Expect(metrics).To(ContainElement(&serializer.Metric{"memoryBytesQuota", float64(33554432), labels}))
+		})
 	})
 
 	Context("isLog", func() {
@@ -169,7 +212,7 @@ var _ = Describe("Serializer", func() {
 				}
 
 				log := subject.GetLog(envelope)
-				labels := log.GetLabels()
+				labels := log.Labels
 
 				Expect(labels["applicationId"]).To(Equal(guid))
 			})
@@ -186,7 +229,7 @@ var _ = Describe("Serializer", func() {
 				}
 
 				log := subject.GetLog(envelope)
-				labels := log.GetLabels()
+				labels := log.Labels
 				Expect(labels["applicationId"]).To(Equal(guid))
 
 			})
@@ -204,25 +247,13 @@ var _ = Describe("Serializer", func() {
 				Expect(metrics).To(HaveLen(1))
 				valueMetric := metrics[0]
 
-				labels := valueMetric.GetLabels()
+				labels := valueMetric.Labels
 				Expect(labels).NotTo(HaveKey("applicationId"))
 
 			})
 
-			It("CounterEvent does not add app id", func() {
-				eventType := events.Envelope_CounterEvent
-
-				event := events.CounterEvent{}
-				envelope := nozzle.Envelope{
-					Envelope: &events.Envelope{
-						EventType:    &eventType,
-						CounterEvent: &event,
-					},
-				}
-
-				labels := envelope.Labels()
-				Expect(labels).NotTo(HaveKey("applicationId"))
-
+			XIt("CounterEvent does not add app id", func() {
+				//TODO
 			})
 
 			It("Error does not add app id", func() {
@@ -235,7 +266,7 @@ var _ = Describe("Serializer", func() {
 				}
 
 				log := subject.GetLog(envelope)
-				labels := log.GetLabels()
+				labels := log.Labels
 				Expect(labels).NotTo(HaveKey("applicationId"))
 
 			})
@@ -246,15 +277,20 @@ var _ = Describe("Serializer", func() {
 				event := events.ContainerMetric{
 					ApplicationId: &guid,
 				}
-				envelope := nozzle.Envelope{
-					Envelope: &events.Envelope{
-						EventType:       &eventType,
-						ContainerMetric: &event,
-					},
+				envelope := &events.Envelope{
+					EventType:       &eventType,
+					ContainerMetric: &event,
 				}
 
-				labels := envelope.Labels()
-				Expect(labels["applicationId"]).To(Equal(guid))
+				metrics := subject.GetMetrics(envelope)
+
+				Expect(len(metrics)).To(Not(Equal(0)))
+
+				for _, metric := range metrics {
+					labels := metric.Labels
+					Expect(labels["applicationId"]).To(Equal(guid))
+
+				}
 			})
 		})
 	})

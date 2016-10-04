@@ -2,25 +2,26 @@ package serializer
 
 import (
 	"fmt"
+
 	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
 	"github.com/cloudfoundry-community/firehose-to-syslog/utils"
 	"github.com/cloudfoundry/sonde-go/events"
 )
 
-type Metric interface {
-	GetName() string
-	GetValue() float64
-	GetLabels() map[string]string
+type Metric struct {
+	Name   string
+	Value  float64
+	Labels map[string]string
 }
 
-type Log interface {
-	GetPayload() interface{}
-	GetLabels() map[string]string
+type Log struct {
+	Payload interface{}
+	Labels  map[string]string
 }
 
 type Serializer interface {
-	GetLog(*events.Envelope) Log
-	GetMetrics(*events.Envelope) []Metric
+	GetLog(*events.Envelope) *Log
+	GetMetrics(*events.Envelope) []*Metric
 	IsLog(*events.Envelope) bool
 }
 
@@ -28,47 +29,36 @@ type cachingClientSerializer struct {
 	cachingClient caching.Caching
 }
 
-type metric struct {
-	name   string
-	value  float64
-	labels map[string]string
-}
-
-func (m *metric) GetName() string {
-	return m.name
-}
-func (m *metric) GetValue() float64 {
-	return m.value
-}
-func (m *metric) GetLabels() map[string]string {
-	return m.labels
-}
-
-type log struct {
-	payload interface{}
-	labels  map[string]string
-}
-
-func (l *log) GetPayload() interface{} {
-	return l.payload
-}
-func (l *log) GetLabels() map[string]string {
-	return l.labels
-}
-
 func NewSerializer(cachingClient caching.Caching) Serializer {
 	return &cachingClientSerializer{cachingClient}
 }
 
-func (s *cachingClientSerializer) GetLog(e *events.Envelope) Log {
-	return &log{payload: e, labels: s.buildLabels(e)}
+func (s *cachingClientSerializer) GetLog(e *events.Envelope) *Log {
+	return &Log{Payload: e, Labels: s.buildLabels(e)}
 }
 
-func (s *cachingClientSerializer) GetMetrics(e *events.Envelope) []Metric {
-	return []Metric{&metric{
-		name:   e.GetValueMetric().GetName(),
-		value:  e.GetValueMetric().GetValue(),
-		labels: s.buildLabels(e)}}
+func (s *cachingClientSerializer) GetMetrics(envelope *events.Envelope) []*Metric {
+	switch envelope.GetEventType() {
+	case events.Envelope_ValueMetric:
+		return []*Metric{{
+			Name:   envelope.GetValueMetric().GetName(),
+			Value:  envelope.GetValueMetric().GetValue(),
+			Labels: s.buildLabels(envelope)}}
+	case events.Envelope_ContainerMetric:
+		containerMetric := envelope.GetContainerMetric()
+		labels := s.buildLabels(envelope)
+		return []*Metric{
+			{"diskBytesQuota", float64(containerMetric.GetDiskBytesQuota()), labels},
+			{"instanceIndex", float64(containerMetric.GetInstanceIndex()), labels},
+			{"cpuPercentage", float64(containerMetric.GetCpuPercentage()), labels},
+			{"diskBytes", float64(containerMetric.GetDiskBytes()), labels},
+			{"memoryBytes", float64(containerMetric.GetMemoryBytes()), labels},
+			{"memoryBytesQuota", float64(containerMetric.GetMemoryBytesQuota()), labels},
+		}
+	default:
+		panic(fmt.Errorf("Unknown event type: %v", envelope.EventType))
+	}
+
 }
 
 func (s *cachingClientSerializer) IsLog(e *events.Envelope) bool {
