@@ -1,16 +1,24 @@
-package nozzle_test
+package serializer_test
 
 import (
 	"time"
 
-	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/nozzle"
-
 	"github.com/cloudfoundry/sonde-go/events"
+	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/nozzle"
+	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/serializer"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Envelope", func() {
+var _ = Describe("Serializer", func() {
+	var (
+		subject serializer.Serializer
+	)
+
+	BeforeEach(func() {
+		subject = serializer.NewSerializer(nil)
+	})
+
 	It("has labels equivalent to its fields", func() {
 		origin := "cool-origin"
 		eventType := events.Envelope_HttpStartStop
@@ -23,20 +31,20 @@ var _ = Describe("Envelope", func() {
 			"foo": "bar",
 		}
 
-		envelope := nozzle.Envelope{
-			Envelope: &events.Envelope{
-				Origin:     &origin,
-				EventType:  &eventType,
-				Timestamp:  &timestamp,
-				Deployment: &deployment,
-				Job:        &job,
-				Index:      &index,
-				Ip:         &ip,
-				Tags:       tags,
-			},
+		envelope := &events.Envelope{
+			Origin:     &origin,
+			EventType:  &eventType,
+			Timestamp:  &timestamp,
+			Deployment: &deployment,
+			Job:        &job,
+			Index:      &index,
+			Ip:         &ip,
+			Tags:       tags,
 		}
 
-		labels := envelope.Labels()
+		log := subject.GetLog(envelope)
+
+		labels := log.GetLabels()
 		Expect(labels).To(Equal(map[string]string{
 			"origin":     origin,
 			"event_type": eventType.String(),
@@ -57,20 +65,20 @@ var _ = Describe("Envelope", func() {
 			"foo": "bar",
 		}
 
-		envelope := nozzle.Envelope{
-			Envelope: &events.Envelope{
-				Origin:     &origin,
-				EventType:  &eventType,
-				Timestamp:  &timestamp,
-				Deployment: nil,
-				Job:        &job,
-				Index:      &index,
-				Ip:         nil,
-				Tags:       tags,
-			},
+		envelope := &events.Envelope{
+			Origin:     &origin,
+			EventType:  &eventType,
+			Timestamp:  &timestamp,
+			Deployment: nil,
+			Job:        &job,
+			Index:      &index,
+			Ip:         nil,
+			Tags:       tags,
 		}
 
-		labels := envelope.Labels()
+		log := subject.GetLog(envelope)
+		labels := log.GetLabels()
+
 		Expect(labels).To(Equal(map[string]string{
 			"origin":     origin,
 			"event_type": eventType.String(),
@@ -95,14 +103,14 @@ var _ = Describe("Envelope", func() {
 				event := events.HttpStartStop{
 					ApplicationId: &appId,
 				}
-				envelope := nozzle.Envelope{
-					Envelope: &events.Envelope{
-						EventType:     &eventType,
-						HttpStartStop: &event,
-					},
+				envelope := &events.Envelope{
+					EventType:     &eventType,
+					HttpStartStop: &event,
 				}
 
-				labels := envelope.Labels()
+				log := subject.GetLog(envelope)
+				labels := log.GetLabels()
+
 				Expect(labels["application_id"]).To(Equal(guid))
 			})
 
@@ -112,14 +120,13 @@ var _ = Describe("Envelope", func() {
 				event := events.LogMessage{
 					AppId: &guid,
 				}
-				envelope := nozzle.Envelope{
-					Envelope: &events.Envelope{
-						EventType:  &eventType,
-						LogMessage: &event,
-					},
+				envelope := &events.Envelope{
+					EventType:  &eventType,
+					LogMessage: &event,
 				}
 
-				labels := envelope.Labels()
+				log := subject.GetLog(envelope)
+				labels := log.GetLabels()
 				Expect(labels["application_id"]).To(Equal(guid))
 
 			})
@@ -128,14 +135,16 @@ var _ = Describe("Envelope", func() {
 				eventType := events.Envelope_ValueMetric
 
 				event := events.ValueMetric{}
-				envelope := nozzle.Envelope{
-					Envelope: &events.Envelope{
-						EventType:   &eventType,
-						ValueMetric: &event,
-					},
+				envelope := &events.Envelope{
+					EventType:   &eventType,
+					ValueMetric: &event,
 				}
+				metrics := subject.GetMetrics(envelope)
 
-				labels := envelope.Labels()
+				Expect(metrics).To(HaveLen(1))
+				valueMetric := metrics[0]
+
+				labels := valueMetric.GetLabels()
 				Expect(labels).NotTo(HaveKey("application_id"))
 
 			})
@@ -160,14 +169,13 @@ var _ = Describe("Envelope", func() {
 				eventType := events.Envelope_Error
 
 				event := events.Error{}
-				envelope := nozzle.Envelope{
-					Envelope: &events.Envelope{
-						EventType: &eventType,
-						Error:     &event,
-					},
+				envelope := &events.Envelope{
+					EventType: &eventType,
+					Error:     &event,
 				}
 
-				labels := envelope.Labels()
+				log := subject.GetLog(envelope)
+				labels := log.GetLabels()
 				Expect(labels).NotTo(HaveKey("application_id"))
 
 			})

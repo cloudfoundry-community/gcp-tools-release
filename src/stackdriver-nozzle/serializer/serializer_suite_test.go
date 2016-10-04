@@ -1,4 +1,4 @@
-package utils_test
+package serializer_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestUtils(t *testing.T) {
+func TestSerializer(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Utils Suite")
+	RunSpecs(t, "Serializer Suite")
 }
