@@ -5,8 +5,10 @@ import (
 
 	"sync"
 
+	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
 	"github.com/cloudfoundry/sonde-go/events"
 	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/nozzle"
+	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/serializer"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -19,7 +21,7 @@ var _ = Describe("Nozzle", func() {
 
 	BeforeEach(func() {
 		sdClient = NewMockStackdriverClient()
-		subject = nozzle.Nozzle{StackdriverClient: sdClient}
+		subject = nozzle.Nozzle{StackdriverClient: sdClient, Serializer: serializer.NewSerializer(caching.NewCachingEmpty())}
 	})
 
 	It("handles HttpStartStop", func() {
@@ -29,7 +31,7 @@ var _ = Describe("Nozzle", func() {
 		subject.HandleEvent(envelope)
 
 		postedLog := sdClient.postedLogs[0]
-		Expect(postedLog.payload).To(Equal(nozzle.Envelope{envelope}))
+		Expect(postedLog.payload).To(Equal(envelope))
 		Expect(postedLog.labels).To(Equal(map[string]string{
 			"eventType": "HttpStartStop",
 		}))
@@ -92,7 +94,7 @@ var _ = Describe("Nozzle", func() {
 			Expect(err).To(BeNil())
 
 			labels := map[string]string{
-				"eventType":    "ContainerMetric",
+				"eventType":     "ContainerMetric",
 				"applicationId": applicationId,
 			}
 			Expect(len(sdClient.postedMetrics)).To(Equal(6))

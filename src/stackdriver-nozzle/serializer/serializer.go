@@ -1,10 +1,10 @@
 package serializer
 
 import (
+	"fmt"
 	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
 	"github.com/cloudfoundry-community/firehose-to-syslog/utils"
 	"github.com/cloudfoundry/sonde-go/events"
-	"fmt"
 )
 
 type Metric interface {

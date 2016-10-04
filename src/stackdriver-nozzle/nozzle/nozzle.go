@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/cloudfoundry/sonde-go/events"
-	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
 	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/serializer"
+	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
 )
 
 type PostContainerMetricError struct {
@@ -23,26 +23,32 @@ func (e *PostContainerMetricError) Error() string {
 
 type Nozzle struct {
 	StackdriverClient stackdriver.Client
-	Serializer serializer.Serializer
+	Serializer        serializer.Serializer
 }
 
 func (n *Nozzle) HandleEvent(eventsEnvelope *events.Envelope) error {
-	envelope := Envelope{eventsEnvelope}
-	labels := envelope.Labels()
 
-	switch envelope.GetEventType() {
-	case events.Envelope_ContainerMetric:
-		return n.postContainerMetrics(envelope)
-	case events.Envelope_ValueMetric:
-		valueMetric := envelope.GetValueMetric()
-		name := valueMetric.GetName()
-		value := valueMetric.GetValue()
-
-		err := n.StackdriverClient.PostMetric(name, value, labels)
-		return err
-	default:
-		n.StackdriverClient.PostLog(envelope, labels)
+	if n.Serializer.IsLog(eventsEnvelope) {
+		log := n.Serializer.GetLog(eventsEnvelope)
+		n.StackdriverClient.PostLog(log.GetPayload(), log.GetLabels())
 		return nil
+	} else {
+		envelope := Envelope{eventsEnvelope}
+		labels := envelope.Labels()
+
+		switch envelope.GetEventType() {
+		case events.Envelope_ContainerMetric:
+			return n.postContainerMetrics(envelope)
+		case events.Envelope_ValueMetric:
+			valueMetric := envelope.GetValueMetric()
+			name := valueMetric.GetName()
+			value := valueMetric.GetValue()
+
+			err := n.StackdriverClient.PostMetric(name, value, labels)
+			return err
+		default:
+			panic(fmt.Errorf("Unexpected metric event: %v", envelope.GetEventType()))
+		}
 	}
 }
 
