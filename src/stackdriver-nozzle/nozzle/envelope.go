@@ -1,8 +1,8 @@
 package nozzle
 
 import (
-	"github.com/cloudfoundry/sonde-go/events"
 	"github.com/cloudfoundry-community/firehose-to-syslog/utils"
+	"github.com/cloudfoundry/sonde-go/events"
 )
 
 type Envelope struct {
@@ -12,6 +12,10 @@ type Envelope struct {
 func (e *Envelope) getApplicationId() string {
 	if e.GetEventType() == events.Envelope_HttpStartStop {
 		return utils.FormatUUID(e.GetHttpStartStop().GetApplicationId())
+	} else if e.GetEventType() == events.Envelope_LogMessage {
+		return e.GetLogMessage().GetAppId()
+	} else if e.GetEventType() == events.Envelope_ContainerMetric {
+		return e.GetContainerMetric().GetApplicationId()
 	} else {
 		return ""
 	}
@@ -47,7 +51,6 @@ func (e *Envelope) Labels() map[string]string {
 	if appId := e.getApplicationId(); appId != "" {
 		labels["application_id"] = appId
 	}
-
 
 	return labels
 }
