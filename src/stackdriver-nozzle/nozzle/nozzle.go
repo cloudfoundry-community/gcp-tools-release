@@ -27,7 +27,6 @@ type Nozzle struct {
 }
 
 func (n *Nozzle) HandleEvent(envelope *events.Envelope) error {
-
 	if n.Serializer.IsLog(envelope) {
 		log := n.Serializer.GetLog(envelope)
 		n.StackdriverClient.PostLog(log.Payload, log.Labels)

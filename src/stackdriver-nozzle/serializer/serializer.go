@@ -30,7 +30,8 @@ type cachingClientSerializer struct {
 }
 
 func NewSerializer(cachingClient caching.Caching) Serializer {
-	return &cachingClientSerializer{cachingClient}
+	serializer := &cachingClientSerializer{cachingClient}
+	return serializer
 }
 
 func (s *cachingClientSerializer) GetLog(e *events.Envelope) *Log {
@@ -91,32 +92,61 @@ func (s *cachingClientSerializer) buildLabels(envelope *events.Envelope) map[str
 	labels := map[string]string{}
 
 	if envelope.Origin != nil {
-		labels["origin"] = envelope.GetOrigin()
+		labels["cloudFoundry/origin"] = envelope.GetOrigin()
 	}
 
 	if envelope.EventType != nil {
-		labels["eventType"] = envelope.GetEventType().String()
+		labels["cloudFoundry/eventType"] = envelope.GetEventType().String()
 	}
 
 	if envelope.Deployment != nil {
-		labels["deployment"] = envelope.GetDeployment()
+		labels["cloudFoundry/deployment"] = envelope.GetDeployment()
 	}
 
 	if envelope.Job != nil {
-		labels["job"] = envelope.GetJob()
+		labels["cloudFoundry/job"] = envelope.GetJob()
 	}
 
 	if envelope.Index != nil {
-		labels["index"] = envelope.GetIndex()
+		labels["cloudFoundry/index"] = envelope.GetIndex()
 	}
 
 	if envelope.Ip != nil {
-		labels["ip"] = envelope.GetIp()
+		labels["cloudFoundry/ip"] = envelope.GetIp()
 	}
 
 	if appId := getApplicationId(envelope); appId != "" {
-		labels["applicationId"] = appId
+		labels["cloudFoundry/applicationId"] = appId
+		s.buildAppMetadataLabels(appId, labels, envelope)
 	}
 
 	return labels
+}
+
+func (s *cachingClientSerializer) buildAppMetadataLabels(appId string, labels map[string]string, envelope *events.Envelope) {
+	if s.cachingClient == nil {
+		return
+	}
+
+	app := s.cachingClient.GetAppInfo(appId)
+
+	if app.Name != "" {
+		labels["cloudFoundry/appName"] = app.Name
+	}
+
+	if app.SpaceName != "" {
+		labels["cloudFoundry/spaceName"] = app.SpaceName
+	}
+
+	if app.SpaceGuid != "" {
+		labels["cloudFoundry/spaceGuid"] = app.SpaceGuid
+	}
+
+	if app.OrgName != "" {
+		labels["cloudFoundry/orgName"] = app.OrgName
+	}
+
+	if app.OrgGuid != "" {
+		labels["cloudFoundry/orgGuid"] = app.OrgGuid
+	}
 }

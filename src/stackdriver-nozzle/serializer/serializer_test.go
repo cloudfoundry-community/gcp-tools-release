@@ -1,9 +1,10 @@
 package serializer_test
 
 import (
+	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
+	"github.com/cloudfoundry/sonde-go/events"
 	"time"
 
-	"github.com/cloudfoundry/sonde-go/events"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"stackdriver-nozzle/serializer"
@@ -45,12 +46,12 @@ var _ = Describe("Serializer", func() {
 
 		labels := log.Labels
 		Expect(labels).To(Equal(map[string]string{
-			"origin":     origin,
-			"eventType":  eventType.String(),
-			"deployment": deployment,
-			"job":        job,
-			"index":      index,
-			"ip":         ip,
+			"cloudFoundry/origin":     origin,
+			"cloudFoundry/eventType":  eventType.String(),
+			"cloudFoundry/deployment": deployment,
+			"cloudFoundry/job":        job,
+			"cloudFoundry/index":      index,
+			"cloudFoundry/ip":         ip,
 		}))
 	})
 
@@ -79,10 +80,10 @@ var _ = Describe("Serializer", func() {
 		labels := log.Labels
 
 		Expect(labels).To(Equal(map[string]string{
-			"origin":    origin,
-			"eventType": eventType.String(),
-			"job":       job,
-			"index":     index,
+			"cloudFoundry/origin":    origin,
+			"cloudFoundry/eventType": eventType.String(),
+			"cloudFoundry/job":       job,
+			"cloudFoundry/index":     index,
 		}))
 	})
 
@@ -113,8 +114,8 @@ var _ = Describe("Serializer", func() {
 			}
 
 			labels := map[string]string{
-				"eventType":     "ContainerMetric",
-				"applicationId": applicationId,
+				"cloudFoundry/eventType":     "ContainerMetric",
+				"cloudFoundry/applicationId": applicationId,
 			}
 
 			metrics := subject.GetMetrics(envelope)
@@ -193,10 +194,10 @@ var _ = Describe("Serializer", func() {
 	Context("Metadata", func() {
 
 		var (
-			guid  = "f47ac10b-58cc-4372-a567-0e02b2c3d479"
-			low   = uint64(0x7243cc580bc17af4)
-			high  = uint64(0x79d4c3b2020e67a5)
-			appId = events.UUID{Low: &low, High: &high}
+			appGuid = "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+			low     = uint64(0x7243cc580bc17af4)
+			high    = uint64(0x79d4c3b2020e67a5)
+			appId   = events.UUID{Low: &low, High: &high}
 		)
 
 		Context("application id", func() {
@@ -214,14 +215,14 @@ var _ = Describe("Serializer", func() {
 				log := subject.GetLog(envelope)
 				labels := log.Labels
 
-				Expect(labels["applicationId"]).To(Equal(guid))
+				Expect(labels["cloudFoundry/applicationId"]).To(Equal(appGuid))
 			})
 
 			It("LogMessage adds app id", func() {
 				eventType := events.Envelope_LogMessage
 
 				event := events.LogMessage{
-					AppId: &guid,
+					AppId: &appGuid,
 				}
 				envelope := &events.Envelope{
 					EventType:  &eventType,
@@ -230,7 +231,7 @@ var _ = Describe("Serializer", func() {
 
 				log := subject.GetLog(envelope)
 				labels := log.Labels
-				Expect(labels["applicationId"]).To(Equal(guid))
+				Expect(labels["cloudFoundry/applicationId"]).To(Equal(appGuid))
 
 			})
 
@@ -248,7 +249,7 @@ var _ = Describe("Serializer", func() {
 				valueMetric := metrics[0]
 
 				labels := valueMetric.Labels
-				Expect(labels).NotTo(HaveKey("applicationId"))
+				Expect(labels).NotTo(HaveKey("cloudFoundry/applicationId"))
 
 			})
 
@@ -267,7 +268,7 @@ var _ = Describe("Serializer", func() {
 
 				log := subject.GetLog(envelope)
 				labels := log.Labels
-				Expect(labels).NotTo(HaveKey("applicationId"))
+				Expect(labels).NotTo(HaveKey("cloudFoundry/applicationId"))
 
 			})
 
@@ -275,7 +276,7 @@ var _ = Describe("Serializer", func() {
 				eventType := events.Envelope_ContainerMetric
 
 				event := events.ContainerMetric{
-					ApplicationId: &guid,
+					ApplicationId: &appGuid,
 				}
 				envelope := &events.Envelope{
 					EventType:       &eventType,
@@ -288,10 +289,112 @@ var _ = Describe("Serializer", func() {
 
 				for _, metric := range metrics {
 					labels := metric.Labels
-					Expect(labels["applicationId"]).To(Equal(guid))
+					Expect(labels["cloudFoundry/applicationId"]).To(Equal(appGuid))
 
 				}
 			})
 		})
+
+		Context("application metadata", func() {
+			var (
+				cachingClient MockCachingClient
+			)
+
+			BeforeEach(func() {
+				cachingClient = MockCachingClient{}
+				cachingClient.AppInfo = make(map[string]caching.App)
+				subject = serializer.NewSerializer(&cachingClient)
+			})
+
+			Context("for a LogMessage", func() {
+				var (
+					eventType = events.Envelope_LogMessage
+					event     *events.LogMessage
+					envelope  *events.Envelope
+					spaceGuid = "2ab560c3-3f21-45e0-9452-d748ff3a15e9"
+					orgGuid   = "b494fb47-3c44-4a98-9a08-d839ec5c799b"
+				)
+
+				BeforeEach(func() {
+					event = &events.LogMessage{
+						AppId: &appGuid,
+					}
+					envelope = &events.Envelope{
+						EventType:  &eventType,
+						LogMessage: event,
+					}
+				})
+
+				It("adds fields for a resolved app", func() {
+					app := caching.App{
+						Name:      "MyApp",
+						Guid:      appGuid,
+						SpaceName: "MySpace",
+						SpaceGuid: spaceGuid,
+						OrgName:   "MyOrg",
+						OrgGuid:   orgGuid,
+					}
+
+					cachingClient.AppInfo[appGuid] = app
+
+					log := subject.GetLog(envelope)
+					labels := log.Labels
+
+					Expect(labels).To(HaveKeyWithValue("cloudFoundry/appName", app.Name))
+					Expect(labels).To(HaveKeyWithValue("cloudFoundry/spaceName", app.SpaceName))
+					Expect(labels).To(HaveKeyWithValue("cloudFoundry/spaceGuid", app.SpaceGuid))
+					Expect(labels).To(HaveKeyWithValue("cloudFoundry/orgName", app.OrgName))
+					Expect(labels).To(HaveKeyWithValue("cloudFoundry/orgGuid", app.OrgGuid))
+				})
+
+				It("doesn't add fields for an unresolved app", func() {
+					log := subject.GetLog(envelope)
+					labels := log.Labels
+
+					Expect(labels).NotTo(HaveKey("cloudFoundry/appName"))
+					Expect(labels).NotTo(HaveKey("cloudFoundry/spaceName"))
+					Expect(labels).NotTo(HaveKey("cloudFoundry/spaceGuid"))
+					Expect(labels).NotTo(HaveKey("cloudFoundry/orgName"))
+					Expect(labels).NotTo(HaveKey("cloudFoundry/orgGuid"))
+				})
+			})
+		})
 	})
 })
+
+type MockCachingClient struct {
+	AppInfo map[string]caching.App
+}
+
+func (c *MockCachingClient) CreateBucket() {
+	panic("unexpected")
+}
+
+func (c *MockCachingClient) PerformPoollingCaching(tickerTime time.Duration) {
+	panic("unexpected")
+}
+
+func (c *MockCachingClient) fillDatabase(listApps []caching.App) {
+	panic("unexpected")
+}
+
+func (c *MockCachingClient) GetAppByGuid(appGuid string) []caching.App {
+	panic("unexpected")
+}
+
+func (c *MockCachingClient) GetAllApp() []caching.App {
+
+	return nil
+}
+
+func (c *MockCachingClient) GetAppInfo(appGuid string) caching.App {
+	return c.AppInfo[appGuid]
+}
+
+func (c *MockCachingClient) Close() {
+	panic("unexpected")
+}
+
+func (c *MockCachingClient) GetAppInfoCache(appGuid string) caching.App {
+	panic("unexpected")
+}

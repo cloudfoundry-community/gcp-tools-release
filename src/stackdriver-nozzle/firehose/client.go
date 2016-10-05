@@ -2,7 +2,6 @@ package firehose
 
 import (
 	"crypto/tls"
-	"fmt"
 	"time"
 
 	"github.com/cloudfoundry-community/go-cfclient"
@@ -16,10 +15,12 @@ type FirehoseHandler interface {
 
 type Client interface {
 	StartListening(FirehoseHandler) error
+	EnsureCfClient() *cfclient.Client
 }
 
 type client struct {
 	cfConfig *cfclient.Config
+	cfClient *cfclient.Client
 }
 
 func NewClient(apiAddress, username, password string, skipSSLValidation bool) Client {
@@ -28,26 +29,22 @@ func NewClient(apiAddress, username, password string, skipSSLValidation bool) Cl
 			ApiAddress:        apiAddress,
 			Username:          username,
 			Password:          password,
-			SkipSslValidation: skipSSLValidation}}
+			SkipSslValidation: skipSSLValidation},
+		nil}
+}
+
+func (c *client) EnsureCfClient() *cfclient.Client {
+	if c.cfClient == nil {
+		c.cfClient = cfclient.NewClient(c.cfConfig)
+	}
+
+	return c.cfClient
 }
 
 func (c *client) StartListening(fh FirehoseHandler) error {
-	cfConfig := &cfclient.Config{
-		ApiAddress:        c.cfConfig.ApiAddress,
-		Username:          c.cfConfig.Username,
-		Password:          c.cfConfig.Password,
-		SkipSslValidation: c.cfConfig.SkipSslValidation}
-	cfClient := cfclient.NewClient(cfConfig)
-
-	// PRECHECKIN: remove
-	endpoint := "wss://doppler.104.199.124.149.xip.io:443"
-
-	fmt.Println("-----")
-	fmt.Println(cfClient.Endpoint.DopplerEndpoint)
-	fmt.Println("-----")
-
+	cfClient := c.EnsureCfClient()
 	cfConsumer := consumer.New(
-		endpoint,
+		cfClient.Endpoint.DopplerEndpoint,
 		&tls.Config{InsecureSkipVerify: c.cfConfig.SkipSslValidation},
 		nil)
 

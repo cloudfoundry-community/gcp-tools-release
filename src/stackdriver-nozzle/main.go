@@ -48,17 +48,23 @@ var (
 			Default(stackdriver.DefaultBatchDuration).
 			OverrideDefaultFromEnvar("BATCH_DURATION").
 			Duration()
+	boltDatabasePath = kingpin.Flag("boltdb-path", "Bolt Database path").
+				Default("cached-app-metadata.db").
+				OverrideDefaultFromEnvar("BOLTDB_PATH").
+				String()
 )
 
 func main() {
 	kingpin.Parse()
 
 	input := firehose.NewClient(*apiEndpoint, *username, *password, *skipSSLValidation)
-
 	sdClient := stackdriver.NewClient(*projectID, *batchCount, *batchDuration)
+	cachingClient := caching.NewCachingBolt(input.EnsureCfClient(), *boltDatabasePath)
+	// Initialize the caching client with the state of the world
+	cachingClient.GetAllApp()
 	output := nozzle.Nozzle{
 		StackdriverClient: sdClient,
-		Serializer:        serializer.NewSerializer(caching.NewCachingEmpty()),
+		Serializer:        serializer.NewSerializer(cachingClient),
 	}
 
 	filteredOutput, err := filter.New(&output, strings.Split(*eventsFilter, ","))
