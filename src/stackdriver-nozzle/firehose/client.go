@@ -2,6 +2,7 @@ package firehose
 
 import (
 	"crypto/tls"
+	"fmt"
 	"time"
 
 	"github.com/cloudfoundry-community/go-cfclient"
@@ -38,8 +39,15 @@ func (c *client) StartListening(fh FirehoseHandler) error {
 		SkipSslValidation: c.cfConfig.SkipSslValidation}
 	cfClient := cfclient.NewClient(cfConfig)
 
+	// PRECHECKIN: remove
+	endpoint := "wss://doppler.104.199.124.149.xip.io:443"
+
+	fmt.Println("-----")
+	fmt.Println(cfClient.Endpoint.DopplerEndpoint)
+	fmt.Println("-----")
+
 	cfConsumer := consumer.New(
-		cfClient.Endpoint.DopplerEndpoint,
+		endpoint,
 		&tls.Config{InsecureSkipVerify: c.cfConfig.SkipSslValidation},
 		nil)
 

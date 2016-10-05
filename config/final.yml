@@ -7,3 +7,6 @@ blobstore:
     host: storage.googleapis.com
     use_ssl: true
     endpoint: https://storage.googleapis.com
+    s3_multipart_threshold: 10000000000000
+    access_key_id: "GOOG27POO67FY3CFRFJL"
+    secret_access_key: "CWaZmHDqhrDIR+XQCLoh+CgPcRTThIKx7PVCHO21"
