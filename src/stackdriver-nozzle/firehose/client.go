@@ -16,11 +16,13 @@ type FirehoseHandler interface {
 
 type Client interface {
 	StartListening(FirehoseHandler) error
+	EnsureCfClient() *cfclient.Client
 }
 
 type client struct {
 	cfConfig *cfclient.Config
 	logger   lager.Logger
+	cfClient *cfclient.Client
 }
 
 func NewClient(apiAddress, username, password string, skipSSLValidation bool, logger lager.Logger) Client {
@@ -31,17 +33,21 @@ func NewClient(apiAddress, username, password string, skipSSLValidation bool, lo
 			Username:          username,
 			Password:          password,
 			SkipSslValidation: skipSSLValidation,
-		}}
+		},
+		cfClient: nil,
+	}
+}
+
+func (c *client) EnsureCfClient() *cfclient.Client {
+	if c.cfClient == nil {
+		c.cfClient = cfclient.NewClient(c.cfConfig)
+	}
+
+	return c.cfClient
 }
 
 func (c *client) StartListening(fh FirehoseHandler) error {
-	cfConfig := &cfclient.Config{
-		ApiAddress:        c.cfConfig.ApiAddress,
-		Username:          c.cfConfig.Username,
-		Password:          c.cfConfig.Password,
-		SkipSslValidation: c.cfConfig.SkipSslValidation}
-	cfClient := cfclient.NewClient(cfConfig)
-
+	cfClient := c.EnsureCfClient()
 	cfConsumer := consumer.New(
 		cfClient.Endpoint.DopplerEndpoint,
 		&tls.Config{InsecureSkipVerify: c.cfConfig.SkipSslValidation},

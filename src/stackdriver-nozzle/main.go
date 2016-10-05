@@ -1,16 +1,19 @@
 package main
 
 import (
+	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
+	"stackdriver-nozzle/filter"
+	"stackdriver-nozzle/firehose"
+	"stackdriver-nozzle/nozzle"
+	"stackdriver-nozzle/serializer"
+	"stackdriver-nozzle/stackdriver"
+
 	"fmt"
 	"strings"
 
 	"github.com/cloudfoundry/lager"
 	"gopkg.in/alecthomas/kingpin.v2"
 	"os"
-	"stackdriver-nozzle/filter"
-	"stackdriver-nozzle/firehose"
-	"stackdriver-nozzle/nozzle"
-	"stackdriver-nozzle/stackdriver"
 )
 
 var (
@@ -46,6 +49,10 @@ var (
 			Default(stackdriver.DefaultBatchDuration).
 			OverrideDefaultFromEnvar("BATCH_DURATION").
 			Duration()
+	boltDatabasePath = kingpin.Flag("boltdb-path", "Bolt Database path").
+				Default("cached-app-metadata.db").
+				OverrideDefaultFromEnvar("BOLTDB_PATH").
+				String()
 )
 
 func main() {
@@ -54,14 +61,16 @@ func main() {
 	logger := lager.NewLogger("my-app")
 	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
 
-	input := firehose.NewClient(
-		*apiEndpoint, *username, *password, *skipSSLValidation, logger,
-	)
+	input := firehose.NewClient(*apiEndpoint, *username, *password, *skipSSLValidation, logger)
 
-	sdClient := stackdriver.NewClient(
-		*projectID, *batchCount, *batchDuration, logger,
-	)
-	output := nozzle.Nozzle{StackdriverClient: sdClient}
+	sdClient := stackdriver.NewClient(*projectID, *batchCount, *batchDuration, logger)
+	cachingClient := caching.NewCachingBolt(input.EnsureCfClient(), *boltDatabasePath)
+	// Initialize the caching client with the state of the world
+	cachingClient.GetAllApp()
+	output := nozzle.Nozzle{
+		StackdriverClient: sdClient,
+		Serializer:        serializer.NewSerializer(cachingClient),
+	}
 
 	filteredOutput, err := filter.New(&output, strings.Split(*eventsFilter, ","))
 	if err != nil {
