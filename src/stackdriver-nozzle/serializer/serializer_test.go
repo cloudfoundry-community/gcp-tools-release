@@ -383,8 +383,7 @@ func (c *MockCachingClient) GetAppByGuid(appGuid string) []caching.App {
 }
 
 func (c *MockCachingClient) GetAllApp() []caching.App {
-
-	return nil
+	panic("unexpected")
 }
 
 func (c *MockCachingClient) GetAppInfo(appGuid string) caching.App {
