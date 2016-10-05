@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/cloudfoundry/lager"
+	"gopkg.in/alecthomas/kingpin.v2"
+	"os"
 	"stackdriver-nozzle/filter"
 	"stackdriver-nozzle/firehose"
 	"stackdriver-nozzle/nozzle"
 	"stackdriver-nozzle/stackdriver"
-
-	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 var (
@@ -50,21 +51,28 @@ var (
 func main() {
 	kingpin.Parse()
 
-	input := firehose.NewClient(*apiEndpoint, *username, *password, *skipSSLValidation)
+	logger := lager.NewLogger("my-app")
+	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
 
-	sdClient := stackdriver.NewClient(*projectID, *batchCount, *batchDuration)
+	input := firehose.NewClient(
+		*apiEndpoint, *username, *password, *skipSSLValidation, logger,
+	)
+
+	sdClient := stackdriver.NewClient(
+		*projectID, *batchCount, *batchDuration, logger,
+	)
 	output := nozzle.Nozzle{StackdriverClient: sdClient}
 
 	filteredOutput, err := filter.New(&output, strings.Split(*eventsFilter, ","))
 	if err != nil {
 		if invalidEvent, ok := err.(*filter.InvalidEvent); ok {
-			panic(invalidEvent)
+			logger.Fatal("invalidEvent", invalidEvent)
 		} else {
 			panic(err)
 		}
 	}
 
-	fmt.Println("Listening to event(s):", *eventsFilter)
+	logger.Info(fmt.Sprintf("Listening to event(s): '%v'", *eventsFilter))
 
 	err = input.StartListening(filteredOutput)
 

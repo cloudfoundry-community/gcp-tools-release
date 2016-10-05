@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/cloudfoundry-community/go-cfclient"
+	"github.com/cloudfoundry/lager"
 	"github.com/cloudfoundry/noaa/consumer"
 	"github.com/cloudfoundry/sonde-go/events"
 )
@@ -19,15 +20,18 @@ type Client interface {
 
 type client struct {
 	cfConfig *cfclient.Config
+	logger   lager.Logger
 }
 
-func NewClient(apiAddress, username, password string, skipSSLValidation bool) Client {
+func NewClient(apiAddress, username, password string, skipSSLValidation bool, logger lager.Logger) Client {
 	return &client{
-		&cfclient.Config{
+		logger: logger,
+		cfConfig: &cfclient.Config{
 			ApiAddress:        apiAddress,
 			Username:          username,
 			Password:          password,
-			SkipSslValidation: skipSSLValidation}}
+			SkipSslValidation: skipSSLValidation,
+		}}
 }
 
 func (c *client) StartListening(fh FirehoseHandler) error {

@@ -31,7 +31,7 @@ func (ie *InvalidEvent) Error() string {
 	}
 	validEvents := strings.Join(eventNames, ", ")
 
-	return fmt.Sprintf("invalid event \"%s\"; valid events: %s", ie.name, validEvents)
+	return fmt.Sprintf("invalid event '%s'; valid events: %s", ie.name, validEvents)
 }
 
 func New(dest firehose.FirehoseHandler, eventNames []string) (firehose.FirehoseHandler, error) {

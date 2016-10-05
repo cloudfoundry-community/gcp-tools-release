@@ -9,6 +9,7 @@ import (
 
 	"cloud.google.com/go/logging"
 	"cloud.google.com/go/monitoring/apiv3"
+	"github.com/cloudfoundry/lager"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"golang.org/x/net/context"
 	"google.golang.org/api/option"
@@ -23,9 +24,10 @@ type Client interface {
 
 type client struct {
 	ctx          context.Context
-	logger       *logging.Logger
+	sdLogger     *logging.Logger
 	metricClient *monitoring.MetricClient
 	projectID    string
+	logger       lager.Logger
 }
 
 const (
@@ -35,10 +37,10 @@ const (
 )
 
 // TODO error handling #131310523
-func NewClient(projectID string, batchCount int, batchDuration time.Duration) Client {
+func NewClient(projectID string, batchCount int, batchDuration time.Duration, logger lager.Logger) Client {
 	ctx := context.Background()
 
-	logger, err := newLogger(ctx, projectID, batchCount, batchDuration)
+	sdLogger, err := newLogger(ctx, projectID, batchCount, batchDuration)
 	if err != nil {
 		panic(err)
 	}
@@ -48,7 +50,13 @@ func NewClient(projectID string, batchCount int, batchDuration time.Duration) Cl
 		panic(err)
 	}
 
-	return &client{ctx: ctx, logger: logger, metricClient: metricClient, projectID: projectID}
+	return &client{
+		ctx:          ctx,
+		sdLogger:     sdLogger,
+		metricClient: metricClient,
+		projectID:    projectID,
+		logger:       logger,
+	}
 }
 
 func newLogger(ctx context.Context, projectID string, batchCount int, batchDuration time.Duration) (*logging.Logger, error) {
@@ -73,7 +81,7 @@ func (s *client) PostLog(payload interface{}, labels map[string]string) {
 		Payload: payload,
 		Labels:  labels,
 	}
-	s.logger.Log(entry)
+	s.sdLogger.Log(entry)
 }
 
 func (s *client) PostMetric(name string, value float64, labels map[string]string) error {
