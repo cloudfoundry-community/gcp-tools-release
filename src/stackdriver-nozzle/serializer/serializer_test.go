@@ -16,7 +16,7 @@ var _ = Describe("Serializer", func() {
 	)
 
 	BeforeEach(func() {
-		subject = serializer.NewSerializer(nil)
+		subject = serializer.NewSerializer(caching.NewCachingEmpty())
 	})
 
 	It("has labels equivalent to its fields", func() {

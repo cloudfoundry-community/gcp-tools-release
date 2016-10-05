@@ -30,8 +30,10 @@ type cachingClientSerializer struct {
 }
 
 func NewSerializer(cachingClient caching.Caching) Serializer {
-	serializer := &cachingClientSerializer{cachingClient}
-	return serializer
+	if cachingClient == nil {
+		panic("cachingClient required")
+	}
+	return &cachingClientSerializer{cachingClient}
 }
 
 func (s *cachingClientSerializer) GetLog(e *events.Envelope) *Log {
@@ -124,10 +126,6 @@ func (s *cachingClientSerializer) buildLabels(envelope *events.Envelope) map[str
 }
 
 func (s *cachingClientSerializer) buildAppMetadataLabels(appId string, labels map[string]string, envelope *events.Envelope) {
-	if s.cachingClient == nil {
-		return
-	}
-
 	app := s.cachingClient.GetAppInfo(appId)
 
 	if app.Name != "" {
