@@ -4,9 +4,9 @@ import (
 	"time"
 
 	"github.com/cloudfoundry/sonde-go/events"
-	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/serializer"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"stackdriver-nozzle/serializer"
 )
 
 var _ = Describe("Serializer", func() {

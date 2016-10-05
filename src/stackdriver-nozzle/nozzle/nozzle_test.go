@@ -7,10 +7,10 @@ import (
 
 	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
 	"github.com/cloudfoundry/sonde-go/events"
-	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/nozzle"
-	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/serializer"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"stackdriver-nozzle/nozzle"
+	"stackdriver-nozzle/serializer"
 )
 
 var _ = Describe("Nozzle", func() {

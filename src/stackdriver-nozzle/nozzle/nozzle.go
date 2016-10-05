@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/cloudfoundry/sonde-go/events"
-	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/serializer"
-	"github.com/evandbrown/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
+	"stackdriver-nozzle/serializer"
+	"stackdriver-nozzle/stackdriver"
 )
 
 type PostMetricError struct {
