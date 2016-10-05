@@ -2,14 +2,14 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
-	"gopkg.in/alecthomas/kingpin.v2"
 	"stackdriver-nozzle/filter"
 	"stackdriver-nozzle/firehose"
 	"stackdriver-nozzle/nozzle"
 	"stackdriver-nozzle/stackdriver"
+
+	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 var (
@@ -57,9 +57,8 @@ func main() {
 
 	filteredOutput, err := filter.New(&output, strings.Split(*eventsFilter, ","))
 	if err != nil {
-		if unknownEvent, ok := err.(*filter.UnknownEventName); ok {
-			fmt.Printf("Error: %s, possible choices: %s\n", unknownEvent.Error(), strings.Join(unknownEvent.Choices, ","))
-			os.Exit(-1)
+		if invalidEvent, ok := err.(*filter.InvalidEvent); ok {
+			panic(invalidEvent)
 		} else {
 			panic(err)
 		}
