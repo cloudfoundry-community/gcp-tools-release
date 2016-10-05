@@ -14,7 +14,7 @@ type filter struct {
 }
 
 type InvalidEvent struct {
-	name   string
+	name string
 }
 
 func parseEventName(name string) (events.Envelope_EventType, error) {
