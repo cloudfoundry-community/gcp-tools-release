@@ -8,6 +8,8 @@ import (
 	"github.com/cloudfoundry/sonde-go/events"
 )
 
+const LabelPrefix = "cloudFoundry/"
+
 type Metric struct {
 	Name   string
 	Value  float64
@@ -91,31 +93,31 @@ func (s *cachingClientSerializer) buildLabels(envelope *events.Envelope) map[str
 	labels := map[string]string{}
 
 	if envelope.Origin != nil {
-		labels["cloudFoundry/origin"] = envelope.GetOrigin()
+		labels[LabelPrefix+"origin"] = envelope.GetOrigin()
 	}
 
 	if envelope.EventType != nil {
-		labels["cloudFoundry/eventType"] = envelope.GetEventType().String()
+		labels[LabelPrefix+"eventType"] = envelope.GetEventType().String()
 	}
 
 	if envelope.Deployment != nil {
-		labels["cloudFoundry/deployment"] = envelope.GetDeployment()
+		labels[LabelPrefix+"deployment"] = envelope.GetDeployment()
 	}
 
 	if envelope.Job != nil {
-		labels["cloudFoundry/job"] = envelope.GetJob()
+		labels[LabelPrefix+"job"] = envelope.GetJob()
 	}
 
 	if envelope.Index != nil {
-		labels["cloudFoundry/index"] = envelope.GetIndex()
+		labels[LabelPrefix+"index"] = envelope.GetIndex()
 	}
 
 	if envelope.Ip != nil {
-		labels["cloudFoundry/ip"] = envelope.GetIp()
+		labels[LabelPrefix+"ip"] = envelope.GetIp()
 	}
 
 	if appId := getApplicationId(envelope); appId != "" {
-		labels["cloudFoundry/applicationId"] = appId
+		labels[LabelPrefix+"applicationId"] = appId
 		s.buildAppMetadataLabels(appId, labels, envelope)
 	}
 
@@ -130,22 +132,22 @@ func (s *cachingClientSerializer) buildAppMetadataLabels(appId string, labels ma
 	app := s.cachingClient.GetAppInfo(appId)
 
 	if app.Name != "" {
-		labels["cloudFoundry/appName"] = app.Name
+		labels[LabelPrefix+"appName"] = app.Name
 	}
 
 	if app.SpaceName != "" {
-		labels["cloudFoundry/spaceName"] = app.SpaceName
+		labels[LabelPrefix+"spaceName"] = app.SpaceName
 	}
 
 	if app.SpaceGuid != "" {
-		labels["cloudFoundry/spaceGuid"] = app.SpaceGuid
+		labels[LabelPrefix+"spaceGuid"] = app.SpaceGuid
 	}
 
 	if app.OrgName != "" {
-		labels["cloudFoundry/orgName"] = app.OrgName
+		labels[LabelPrefix+"orgName"] = app.OrgName
 	}
 
 	if app.OrgGuid != "" {
-		labels["cloudFoundry/orgGuid"] = app.OrgGuid
+		labels[LabelPrefix+"orgGuid"] = app.OrgGuid
 	}
 }
