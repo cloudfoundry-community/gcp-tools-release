@@ -8,6 +8,7 @@ import (
 	"github.com/cloudfoundry/lager"
 	"github.com/cloudfoundry/noaa/consumer"
 	"github.com/cloudfoundry/sonde-go/events"
+	"errors"
 )
 
 type FirehoseHandler interface {
@@ -26,7 +27,7 @@ type client struct {
 
 func NewClient(cfConfig *cfclient.Config, cfClient *cfclient.Client, logger lager.Logger) Client {
 	if cfConfig == nil || cfClient == nil {
-		panic("cfClient and cfConfig required")
+		logger.Fatal("firehoseClient", errors.New("cfClient and cfConfig required"))
 	}
 	return &client{cfConfig, cfClient, logger}
 }

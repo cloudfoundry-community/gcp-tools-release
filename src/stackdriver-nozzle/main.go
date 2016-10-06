@@ -89,7 +89,7 @@ func main() {
 
 	output := nozzle.Nozzle{
 		StackdriverClient: sdClient,
-		Serializer:        serializer.NewSerializer(cachingClient),
+		Serializer:        serializer.NewSerializer(cachingClient, logger),
 		Logger:            logger,
 	}
 

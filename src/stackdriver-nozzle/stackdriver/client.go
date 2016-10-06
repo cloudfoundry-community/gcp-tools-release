@@ -40,14 +40,11 @@ const (
 func NewClient(projectID string, batchCount int, batchDuration time.Duration, logger lager.Logger) Client {
 	ctx := context.Background()
 
-	sdLogger, err := newLogger(ctx, projectID, batchCount, batchDuration)
-	if err != nil {
-		panic(err)
-	}
+	sdLogger := newLogger(ctx, projectID, batchCount, batchDuration, logger)
 
 	metricClient, err := monitoring.NewMetricClient(ctx, option.WithScopes("https://www.googleapis.com/auth/monitoring.write"))
 	if err != nil {
-		panic(err)
+		logger.Fatal("metricClient", err)
 	}
 
 	return &client{
@@ -59,21 +56,20 @@ func NewClient(projectID string, batchCount int, batchDuration time.Duration, lo
 	}
 }
 
-func newLogger(ctx context.Context, projectID string, batchCount int, batchDuration time.Duration) (*logging.Logger, error) {
+func newLogger(ctx context.Context, projectID string, batchCount int, batchDuration time.Duration, logger lager.Logger) *logging.Logger {
 	loggingClient, err := logging.NewClient(ctx, projectID)
 	if err != nil {
-		return nil, err
+		logger.Fatal("stackdriverClient", err)
 	}
 
 	loggingClient.OnError = func(err error) {
-		panic(err)
+		logger.Fatal("stackdriverClientOnError", err)
 	}
 
-	logger := loggingClient.Logger(logId,
+	return loggingClient.Logger(logId,
 		logging.EntryCountThreshold(batchCount),
 		logging.DelayThreshold(batchDuration),
 	)
-	return logger, nil
 }
 
 func (s *client) PostLog(payload interface{}, labels map[string]string) {

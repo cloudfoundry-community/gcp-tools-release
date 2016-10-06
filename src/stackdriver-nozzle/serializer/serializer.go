@@ -6,6 +6,7 @@ import (
 	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
 	"github.com/cloudfoundry-community/firehose-to-syslog/utils"
 	"github.com/cloudfoundry/sonde-go/events"
+	"github.com/cloudfoundry/lager"
 )
 
 type Metric struct {
@@ -27,10 +28,11 @@ type Serializer interface {
 
 type cachingClientSerializer struct {
 	cachingClient caching.Caching
+	logger lager.Logger
 }
 
-func NewSerializer(cachingClient caching.Caching) Serializer {
-	return &cachingClientSerializer{cachingClient}
+func NewSerializer(cachingClient caching.Caching, logger lager.Logger) Serializer {
+	return &cachingClientSerializer{cachingClient, logger}
 }
 
 func (s *cachingClientSerializer) GetLog(e *events.Envelope) *Log {
@@ -56,13 +58,14 @@ func (s *cachingClientSerializer) GetMetrics(envelope *events.Envelope) []*Metri
 			{"memoryBytesQuota", float64(containerMetric.GetMemoryBytesQuota()), labels},
 		}
 	default:
-		panic(fmt.Errorf("Unknown event type: %v", envelope.EventType))
+		s.logger.Error("unknownEventType", fmt.Errorf("Unknown event type: %v", envelope.EventType))
+		return nil
 	}
 
 }
 
-func (s *cachingClientSerializer) IsLog(e *events.Envelope) bool {
-	switch *e.EventType {
+func (s *cachingClientSerializer) IsLog(envelope *events.Envelope) bool {
+	switch *envelope.EventType {
 	case events.Envelope_HttpStartStop, events.Envelope_LogMessage, events.Envelope_Error:
 		return true
 	case events.Envelope_ValueMetric, events.Envelope_ContainerMetric:
@@ -71,7 +74,8 @@ func (s *cachingClientSerializer) IsLog(e *events.Envelope) bool {
 		//Not yet implemented as a metric
 		return true
 	default:
-		panic(fmt.Errorf("Unknown event type: %v", e.EventType))
+		s.logger.Error("unknownEventType", fmt.Errorf("Unknown event type: %v", envelope.EventType))
+		return false
 	}
 }
 

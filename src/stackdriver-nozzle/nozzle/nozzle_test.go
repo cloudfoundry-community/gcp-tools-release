@@ -27,7 +27,7 @@ var _ = Describe("Nozzle", func() {
 		logger = &MockLogger{}
 		subject = nozzle.Nozzle{
 			StackdriverClient: sdClient,
-			Serializer:        serializer.NewSerializer(caching.NewCachingEmpty()),
+			Serializer:        serializer.NewSerializer(caching.NewCachingEmpty(), logger),
 			Logger:            logger,
 		}
 	})
