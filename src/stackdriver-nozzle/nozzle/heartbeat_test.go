@@ -16,15 +16,13 @@ var _ = Describe("Heartbeat", func() {
 		subject nozzle.Heartbeater
 		logger  *mockLogger
 		trigger chan time.Time
-		counter chan struct{}
 	)
 
 	BeforeEach(func() {
 		logger = &mockLogger{}
 		trigger = make(chan time.Time)
-		counter = make(chan struct{})
 
-		subject = nozzle.NewHeartbeat(logger, trigger, counter)
+		subject = nozzle.NewHeartbeat(logger, trigger)
 		subject.Start()
 	})
 
@@ -44,7 +42,7 @@ var _ = Describe("Heartbeat", func() {
 
 	It("should count events", func() {
 		for i := 0; i < 10; i++ {
-			counter <- struct{}{}
+			subject.AddCounter()
 		}
 
 		trigger <- time.Now()
@@ -62,13 +60,13 @@ var _ = Describe("Heartbeat", func() {
 
 	It("should reset the counter on triggers", func() {
 		for i := 0; i < 10; i++ {
-			counter <- struct{}{}
+			subject.AddCounter()
 		}
 
 		trigger <- time.Now()
 
 		for i := 0; i < 5; i++ {
-			counter <- struct{}{}
+			subject.AddCounter()
 		}
 
 		trigger <- time.Now()
