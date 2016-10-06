@@ -15,7 +15,6 @@ type FirehoseHandler interface {
 
 type Client interface {
 	StartListening(FirehoseHandler) error
-	EnsureCfClient() *cfclient.Client
 }
 
 type client struct {
@@ -23,32 +22,20 @@ type client struct {
 	cfClient *cfclient.Client
 }
 
-func NewClient(apiAddress, username, password string, skipSSLValidation bool) Client {
-	return &client{
-		&cfclient.Config{
-			ApiAddress:        apiAddress,
-			Username:          username,
-			Password:          password,
-			SkipSslValidation: skipSSLValidation},
-		nil}
-}
-
-func (c *client) EnsureCfClient() *cfclient.Client {
-	if c.cfClient == nil {
-		c.cfClient = cfclient.NewClient(c.cfConfig)
+func NewClient(cfConfig *cfclient.Config, cfClient *cfclient.Client) Client {
+	if cfConfig == nil || cfClient == nil {
+		panic("cfClient and cfConfig required")
 	}
-
-	return c.cfClient
+	return &client{cfConfig, cfClient}
 }
 
 func (c *client) StartListening(fh FirehoseHandler) error {
-	cfClient := c.EnsureCfClient()
 	cfConsumer := consumer.New(
-		cfClient.Endpoint.DopplerEndpoint,
+		c.cfClient.Endpoint.DopplerEndpoint,
 		&tls.Config{InsecureSkipVerify: c.cfConfig.SkipSslValidation},
 		nil)
 
-	refresher := CfClientTokenRefresh{cfClient: cfClient}
+	refresher := CfClientTokenRefresh{cfClient: c.cfClient}
 	cfConsumer.SetIdleTimeout(time.Duration(30) * time.Second)
 	cfConsumer.RefreshTokenFrom(&refresher)
 	messages, errs := cfConsumer.FirehoseWithoutReconnect("test", "")

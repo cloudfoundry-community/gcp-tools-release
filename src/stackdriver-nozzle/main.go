@@ -2,6 +2,8 @@ package main
 
 import (
 	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
+	"github.com/cloudfoundry-community/go-cfclient"
+
 	"stackdriver-nozzle/filter"
 	"stackdriver-nozzle/firehose"
 	"stackdriver-nozzle/nozzle"
@@ -61,13 +63,18 @@ var (
 func main() {
 	kingpin.Parse()
 
-	input := firehose.NewClient(*apiEndpoint, *username, *password, *skipSSLValidation)
+	cfConfig := &cfclient.Config{
+		ApiAddress:        *apiEndpoint,
+		Username:          *username,
+		Password:          *password,
+		SkipSslValidation: *skipSSLValidation}
+	cfClient := cfclient.NewClient(cfConfig)
+	input := firehose.NewClient(cfConfig, cfClient)
 	sdClient := stackdriver.NewClient(*projectID, *batchCount, *batchDuration)
 
 	var cachingClient caching.Caching
-
 	if *resolveCfMetadata {
-		cachingClient = caching.NewCachingBolt(input.EnsureCfClient(), *boltDatabasePath)
+		cachingClient = caching.NewCachingBolt(cfClient, *boltDatabasePath)
 		// Initialize the caching client with the state of the world
 		cachingClient.GetAllApp()
 	} else {
