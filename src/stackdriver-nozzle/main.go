@@ -64,7 +64,7 @@ var (
 func main() {
 	kingpin.Parse()
 
-	logger := lager.NewLogger("my-app")
+	logger := lager.NewLogger("stackdriver-nozzle")
 	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
 	logger.Info("arguments", lager.Data{
 		"resolveCfMetadata": resolveCfMetadata,
