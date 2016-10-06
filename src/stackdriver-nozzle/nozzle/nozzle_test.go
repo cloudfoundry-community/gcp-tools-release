@@ -41,7 +41,7 @@ var _ = Describe("Nozzle", func() {
 		postedLog := sdClient.postedLogs[0]
 		Expect(postedLog.payload).To(Equal(envelope))
 		Expect(postedLog.labels).To(Equal(map[string]string{
-			"cloudFoundry/eventType": "HttpStartStop",
+			"eventType": "HttpStartStop",
 		}))
 	})
 
@@ -69,7 +69,7 @@ var _ = Describe("Nozzle", func() {
 			Expect(postedMetric.name).To(Equal(metricName))
 			Expect(postedMetric.value).To(Equal(metricValue))
 			Expect(postedMetric.labels).To(Equal(map[string]string{
-				"cloudFoundry/eventType": "ValueMetric",
+				"eventType": "ValueMetric",
 			}))
 		})
 
@@ -102,8 +102,8 @@ var _ = Describe("Nozzle", func() {
 			Expect(err).To(BeNil())
 
 			labels := map[string]string{
-				"cloudFoundry/eventType":     "ContainerMetric",
-				"cloudFoundry/applicationId": applicationId,
+				"eventType":     "ContainerMetric",
+				"applicationId": applicationId,
 			}
 			Expect(len(sdClient.postedMetrics)).To(Equal(6))
 			Expect(sdClient.postedMetrics).To(ConsistOf(
