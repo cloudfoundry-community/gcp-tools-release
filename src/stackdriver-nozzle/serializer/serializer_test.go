@@ -16,7 +16,7 @@ var _ = Describe("Serializer", func() {
 	)
 
 	BeforeEach(func() {
-		subject = serializer.NewSerializer(nil, nil)
+		subject = serializer.NewSerializer(caching.NewCachingEmpty(), nil)
 	})
 
 	It("has labels equivalent to its fields", func() {
@@ -383,7 +383,7 @@ func (c *MockCachingClient) GetAppByGuid(appGuid string) []caching.App {
 }
 
 func (c *MockCachingClient) GetAllApp() []caching.App {
-	panic("unexpected")
+	return []caching.App{}
 }
 
 func (c *MockCachingClient) GetAppInfo(appGuid string) caching.App {

@@ -3,6 +3,7 @@ package serializer
 import (
 	"fmt"
 
+	"errors"
 	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
 	"github.com/cloudfoundry-community/firehose-to-syslog/utils"
 	"github.com/cloudfoundry/lager"
@@ -32,6 +33,12 @@ type cachingClientSerializer struct {
 }
 
 func NewSerializer(cachingClient caching.Caching, logger lager.Logger) Serializer {
+	if cachingClient == nil {
+		logger.Fatal("nilCachingClient", errors.New("caching client cannot be nil"))
+	}
+
+	cachingClient.GetAllApp()
+
 	return &cachingClientSerializer{cachingClient, logger}
 }
 
@@ -127,10 +134,6 @@ func (s *cachingClientSerializer) buildLabels(envelope *events.Envelope) map[str
 }
 
 func (s *cachingClientSerializer) buildAppMetadataLabels(appId string, labels map[string]string, envelope *events.Envelope) {
-	if s.cachingClient == nil {
-		return
-	}
-
 	app := s.cachingClient.GetAppInfo(appId)
 
 	if app.Name != "" {

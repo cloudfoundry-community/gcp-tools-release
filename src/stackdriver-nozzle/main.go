@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"strings"
 
@@ -67,8 +66,11 @@ func main() {
 
 	logger := lager.NewLogger("my-app")
 	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
+	logger.Info("arguments", lager.Data{
+		"resolveCfMetadata": resolveCfMetadata,
+		"events":            eventsFilter,
+	})
 
-	// Initialize the caching client with the state of the world
 	cfConfig := &cfclient.Config{
 		ApiAddress:        *apiEndpoint,
 		Username:          *username,
@@ -81,10 +83,8 @@ func main() {
 	var cachingClient caching.Caching
 	if *resolveCfMetadata {
 		cachingClient = caching.NewCachingBolt(cfClient, *boltDatabasePath)
-		// Initialize the caching client with the state of the world
-		cachingClient.GetAllApp()
 	} else {
-		fmt.Println("Not resolving CloudFoundry app metadata")
+		cachingClient = caching.NewCachingEmpty()
 	}
 
 	output := nozzle.Nozzle{
@@ -95,10 +95,8 @@ func main() {
 
 	filteredOutput, err := filter.New(&output, strings.Split(*eventsFilter, ","))
 	if err != nil {
-		logger.Fatal("filter", err)
+		logger.Fatal("newFilter", err)
 	}
-
-	logger.Info(fmt.Sprintf("Listening to event(s): '%v'", *eventsFilter))
 
 	err = input.StartListening(filteredOutput)
 	if err != nil {
