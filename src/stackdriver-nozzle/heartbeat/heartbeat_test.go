@@ -1,19 +1,20 @@
-package nozzle_test
+package heartbeat_test
 
 import (
-	"stackdriver-nozzle/nozzle"
-
 	"github.com/cloudfoundry/lager"
 
 	"time"
 
+	"stackdriver-nozzle/heartbeat"
+
+	"errors"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Heartbeat", func() {
 	var (
-		subject nozzle.Heartbeater
+		subject heartbeat.Heartbeater
 		logger  *mockLogger
 		trigger chan time.Time
 	)
@@ -22,7 +23,7 @@ var _ = Describe("Heartbeat", func() {
 		logger = &mockLogger{}
 		trigger = make(chan time.Time)
 
-		subject = nozzle.NewHeartbeat(logger, trigger)
+		subject = heartbeat.NewHeartbeat(logger, trigger)
 		subject.Start()
 	})
 
@@ -81,6 +82,30 @@ var _ = Describe("Heartbeat", func() {
 			},
 		}))
 	})
+
+	It("should stop counting", func() {
+		for i := 0; i < 5; i++ {
+			subject.AddCounter()
+		}
+		subject.Stop()
+
+		Eventually(func() log {
+			return logger.lastLog()
+		}).Should(Equal(log{
+			level:  lager.INFO,
+			action: "counterStopped",
+			datas: []lager.Data{
+				{"remainingCount": 5},
+			},
+		}))
+
+		subject.AddCounter()
+		Expect(logger.lastLog()).To(Equal(log{
+			level:  lager.ERROR,
+			action: "addCounter",
+			err:    errors.New("attempted to add to counter without starting heartbeat"),
+		}))
+	})
 })
 
 type mockLogger struct {
@@ -90,6 +115,7 @@ type mockLogger struct {
 type log struct {
 	level  lager.LogLevel
 	action string
+	err    error
 	datas  []lager.Data
 }
 
@@ -118,7 +144,12 @@ func (m *mockLogger) Info(action string, data ...lager.Data) {
 }
 
 func (m *mockLogger) Error(action string, err error, data ...lager.Data) {
-	panic("NYI")
+	m.logs = append(m.logs, log{
+		level:  lager.ERROR,
+		action: action,
+		err:    err,
+		datas:  data,
+	})
 }
 
 func (m *mockLogger) Fatal(action string, err error, data ...lager.Data) {

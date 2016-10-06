@@ -15,6 +15,7 @@ import (
 	"google.golang.org/api/option"
 	"google.golang.org/genproto/googleapis/api/metric"
 	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
+	"stackdriver-nozzle/heartbeat"
 )
 
 type Client interface {
@@ -28,6 +29,7 @@ type client struct {
 	metricClient *monitoring.MetricClient
 	projectID    string
 	logger       lager.Logger
+	heartbeater  heartbeat.Heartbeater
 }
 
 const (
@@ -37,7 +39,7 @@ const (
 )
 
 // TODO error handling #131310523
-func NewClient(projectID string, batchCount int, batchDuration time.Duration, logger lager.Logger) Client {
+func NewClient(projectID string, batchCount int, batchDuration time.Duration, logger lager.Logger, hearbeater heartbeat.Heartbeater) Client {
 	ctx := context.Background()
 
 	sdLogger := newLogger(ctx, projectID, batchCount, batchDuration, logger)
@@ -53,6 +55,7 @@ func NewClient(projectID string, batchCount int, batchDuration time.Duration, lo
 		metricClient: metricClient,
 		projectID:    projectID,
 		logger:       logger,
+		heartbeater:  hearbeater,
 	}
 }
 
@@ -73,6 +76,7 @@ func newLogger(ctx context.Context, projectID string, batchCount int, batchDurat
 }
 
 func (s *client) PostLog(payload interface{}, labels map[string]string) {
+	s.heartbeater.AddCounter()
 	entry := logging.Entry{
 		Payload: payload,
 		Labels:  labels,
@@ -81,6 +85,7 @@ func (s *client) PostLog(payload interface{}, labels map[string]string) {
 }
 
 func (s *client) PostMetric(name string, value float64, labels map[string]string) error {
+	s.heartbeater.AddCounter()
 	projectName := fmt.Sprintf("projects/%s", s.projectID)
 	metricType := path.Join("custom.googleapis.com", name)
 

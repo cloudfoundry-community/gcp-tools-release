@@ -15,7 +15,10 @@ import (
 	"github.com/cloudfoundry-community/go-cfclient"
 	"gopkg.in/alecthomas/kingpin.v2"
 
+	"time"
+
 	"github.com/cloudfoundry/lager"
+	"stackdriver-nozzle/heartbeat"
 )
 
 var (
@@ -78,7 +81,6 @@ func main() {
 		SkipSslValidation: *skipSSLValidation}
 	cfClient := cfclient.NewClient(cfConfig)
 	input := firehose.NewClient(cfConfig, cfClient, logger)
-	sdClient := stackdriver.NewClient(*projectID, *batchCount, *batchDuration, logger)
 
 	var cachingClient caching.Caching
 	if *resolveCfMetadata {
@@ -87,9 +89,14 @@ func main() {
 		cachingClient = caching.NewCachingEmpty()
 	}
 
-	output := nozzle.Nozzle {
+	trigger := time.NewTicker(30 * time.Second).C
+	heartbeater := heartbeat.NewHeartbeat(logger, trigger)
+	sdClient := stackdriver.NewClient(*projectID, *batchCount, *batchDuration, logger, heartbeater)
+	nozzleSerializer := serializer.NewSerializer(cachingClient, logger)
+
+	output := nozzle.Nozzle{
 		StackdriverClient: sdClient,
-		Serializer:        serializer.NewSerializer(cachingClient, logger),
+		Serializer:        nozzleSerializer,
 	}
 
 	filteredOutput, err := filter.New(&output, strings.Split(*eventsFilter, ","))
@@ -97,7 +104,10 @@ func main() {
 		logger.Fatal("newFilter", err)
 	}
 
+	heartbeater.Start()
 	err = input.StartListening(filteredOutput)
+	heartbeater.Stop()
+
 	if err != nil {
 		logger.Fatal("firehoseStart", err)
 	}

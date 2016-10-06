@@ -47,7 +47,7 @@ func (c *client) StartListening(fh FirehoseHandler) error {
 		select {
 		case envelope := <-messages:
 			err := fh.HandleEvent(envelope)
-			if (err != nil) {
+			if err != nil {
 				c.logger.Error("handleEvent", err)
 			}
 		case err := <-errs:
