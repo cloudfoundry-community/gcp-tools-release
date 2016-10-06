@@ -126,7 +126,8 @@ var _ = Describe("Nozzle", func() {
 
 			subject.HandleEvent(envelope)
 
-			Expect(logger.called).To(Equal(true))
+			Expect(logger.action).To(Equal("metricError"))
+			Expect(logger.err).To(Not(BeNil()))
 		})
 
 		XIt("returns error if client errors out", func() {
@@ -147,7 +148,8 @@ var _ = Describe("Nozzle", func() {
 })
 
 type MockLogger struct {
-	called bool
+	err error
+	action string
 }
 
 func (m *MockLogger) RegisterSink(lager.Sink) {
@@ -171,7 +173,8 @@ func (m *MockLogger) Info(action string, data ...lager.Data) {
 }
 
 func (m *MockLogger) Error(action string, err error, data ...lager.Data) {
-	m.called = true
+	m.err = err
+	m.action = action
 }
 
 func (m *MockLogger) Fatal(action string, err error, data ...lager.Data) {
