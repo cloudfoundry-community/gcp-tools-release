@@ -65,6 +65,7 @@ var (
 )
 
 func main() {
+	const triggerDuration = 30 * time.Second
 	kingpin.Parse()
 
 	logger := lager.NewLogger("stackdriver-nozzle")
@@ -89,7 +90,7 @@ func main() {
 		cachingClient = caching.NewCachingEmpty()
 	}
 
-	trigger := time.NewTicker(30 * time.Second).C
+	trigger := time.NewTicker(triggerDuration).C
 	heartbeater := heartbeat.NewHeartbeat(logger, trigger)
 	sdClient := stackdriver.NewClient(*projectID, *batchCount, *batchDuration, logger, heartbeater)
 	nozzleSerializer := serializer.NewSerializer(cachingClient, logger)
