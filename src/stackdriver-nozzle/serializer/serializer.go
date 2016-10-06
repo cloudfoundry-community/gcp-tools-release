@@ -65,7 +65,7 @@ func (s *cachingClientSerializer) GetMetrics(envelope *events.Envelope) []*Metri
 			{"memoryBytesQuota", float64(containerMetric.GetMemoryBytesQuota()), labels},
 		}
 	default:
-		s.logger.Error("unknownEventType", fmt.Errorf("Unknown event type: %v", envelope.EventType))
+		s.logger.Error("unknownEventType", fmt.Errorf("unknown event type: %v", envelope.EventType))
 		return nil
 	}
 
@@ -81,7 +81,7 @@ func (s *cachingClientSerializer) IsLog(envelope *events.Envelope) bool {
 		//Not yet implemented as a metric
 		return true
 	default:
-		s.logger.Error("unknownEventType", fmt.Errorf("Unknown event type: %v", envelope.EventType))
+		s.logger.Error("unknownEventType", fmt.Errorf("unknown event type: %v", envelope.EventType))
 		return false
 	}
 }

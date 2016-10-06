@@ -125,8 +125,8 @@ var _ = Describe("Nozzle", func() {
 			err := subject.HandleEvent(envelope)
 
 			Expect(err).NotTo(BeNil())
-			Expect(err.Error()).To(ContainSubstring("Name: diskBytesQuota Value: 0.000000, Error: fail"))
-			Expect(err.Error()).To(ContainSubstring("Name: memoryBytesQuota Value: 0.000000, Error: fail"))
+			Expect(err.Error()).To(ContainSubstring("name: diskBytesQuota value: 0.000000, error: fail"))
+			Expect(err.Error()).To(ContainSubstring("name: memoryBytesQuota value: 0.000000, error: fail"))
 		})
 	})
 })

@@ -67,7 +67,7 @@ func (n *Nozzle) postMetric(errorsCh chan error, name string, value float64, lab
 	go func() {
 		err := n.StackdriverClient.PostMetric(name, value, labels)
 		if err != nil {
-			errorsCh <- fmt.Errorf("Name: %v Value: %f, Error: %v", name, value, err.Error())
+			errorsCh <- fmt.Errorf("name: %v value: %f, error: %v", name, value, err.Error())
 		} else {
 			errorsCh <- nil
 		}
