@@ -4,11 +4,11 @@ import (
 	"crypto/tls"
 	"time"
 
+	"errors"
 	"github.com/cloudfoundry-community/go-cfclient"
 	"github.com/cloudfoundry/lager"
 	"github.com/cloudfoundry/noaa/consumer"
 	"github.com/cloudfoundry/sonde-go/events"
-	"errors"
 )
 
 type FirehoseHandler interface {

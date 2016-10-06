@@ -3,10 +3,10 @@ package main
 import (
 	"os"
 
+	"github.com/cloudfoundry-community/go-cfclient"
 	"github.com/cloudfoundry/sonde-go/events"
 	"gopkg.in/alecthomas/kingpin.v2"
 	"stackdriver-nozzle/firehose"
-	"github.com/cloudfoundry-community/go-cfclient"
 )
 
 func main() {
@@ -22,7 +22,7 @@ func main() {
 		Username:          username,
 		Password:          password,
 		SkipSslValidation: skipSSLValidation}
-	
+
 	cfClient := cfclient.NewClient(cfConfig)
 
 	client := firehose.NewClient(cfConfig, cfClient, nil)

@@ -148,7 +148,7 @@ var _ = Describe("Nozzle", func() {
 })
 
 type MockLogger struct {
-	err error
+	err    error
 	action string
 }
 

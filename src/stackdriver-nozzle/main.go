@@ -95,18 +95,13 @@ func main() {
 
 	filteredOutput, err := filter.New(&output, strings.Split(*eventsFilter, ","))
 	if err != nil {
-		if invalidEvent, ok := err.(*filter.InvalidEvent); ok {
-			logger.Fatal("invalidEvent", invalidEvent)
-		} else {
-			panic(err)
-		}
+		logger.Fatal("filter", err)
 	}
 
 	logger.Info(fmt.Sprintf("Listening to event(s): '%v'", *eventsFilter))
 
 	err = input.StartListening(filteredOutput)
-
 	if err != nil {
-		panic(err)
+		logger.Fatal("firehoseStart", err)
 	}
 }

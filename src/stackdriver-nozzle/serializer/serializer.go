@@ -5,8 +5,8 @@ import (
 
 	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
 	"github.com/cloudfoundry-community/firehose-to-syslog/utils"
-	"github.com/cloudfoundry/sonde-go/events"
 	"github.com/cloudfoundry/lager"
+	"github.com/cloudfoundry/sonde-go/events"
 )
 
 type Metric struct {
@@ -28,7 +28,7 @@ type Serializer interface {
 
 type cachingClientSerializer struct {
 	cachingClient caching.Caching
-	logger lager.Logger
+	logger        lager.Logger
 }
 
 func NewSerializer(cachingClient caching.Caching, logger lager.Logger) Serializer {
