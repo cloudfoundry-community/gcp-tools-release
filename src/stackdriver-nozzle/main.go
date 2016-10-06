@@ -87,10 +87,9 @@ func main() {
 		cachingClient = caching.NewCachingEmpty()
 	}
 
-	output := nozzle.Nozzle{
+	output := nozzle.Nozzle {
 		StackdriverClient: sdClient,
 		Serializer:        serializer.NewSerializer(cachingClient, logger),
-		Logger:            logger,
 	}
 
 	filteredOutput, err := filter.New(&output, strings.Split(*eventsFilter, ","))

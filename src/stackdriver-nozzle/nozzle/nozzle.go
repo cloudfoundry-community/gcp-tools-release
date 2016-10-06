@@ -3,12 +3,12 @@ package nozzle
 import (
 	"strings"
 
-	"github.com/cloudfoundry/sonde-go/events"
 	"stackdriver-nozzle/serializer"
 	"stackdriver-nozzle/stackdriver"
 
+	"github.com/cloudfoundry/sonde-go/events"
+
 	"fmt"
-	"github.com/cloudfoundry/lager"
 )
 
 type PostMetricError struct {
@@ -26,7 +26,6 @@ func (e *PostMetricError) Error() string {
 type Nozzle struct {
 	StackdriverClient stackdriver.Client
 	Serializer        serializer.Serializer
-	Logger            lager.Logger
 }
 
 func (n *Nozzle) HandleEvent(envelope *events.Envelope) error {
@@ -36,12 +35,7 @@ func (n *Nozzle) HandleEvent(envelope *events.Envelope) error {
 		return nil
 	} else {
 		metrics := n.Serializer.GetMetrics(envelope)
-		err := n.postMetrics(metrics)
-		if err != nil {
-			n.Logger.Error("metricError", err)
-		}
-		//TODO: should we return the error or only log it?
-		return nil
+		return n.postMetrics(metrics)
 	}
 }
 
@@ -73,7 +67,7 @@ func (n *Nozzle) postMetric(errorsCh chan error, name string, value float64, lab
 	go func() {
 		err := n.StackdriverClient.PostMetric(name, value, labels)
 		if err != nil {
-			errorsCh <- fmt.Errorf("Name %v: Value: %f, Error: %v", name, value, err.Error())
+			errorsCh <- fmt.Errorf("Name: %v Value: %f, Error: %v", name, value, err.Error())
 		} else {
 			errorsCh <- nil
 		}

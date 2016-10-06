@@ -5,30 +5,28 @@ import (
 
 	"sync"
 
-	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
-	"github.com/cloudfoundry/lager"
 	"stackdriver-nozzle/nozzle"
+
+	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
+
+	"stackdriver-nozzle/serializer"
 
 	"github.com/cloudfoundry/sonde-go/events"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"stackdriver-nozzle/serializer"
 )
 
 var _ = Describe("Nozzle", func() {
 	var (
-		logger   *MockLogger
 		sdClient *MockStackdriverClient
 		subject  nozzle.Nozzle
 	)
 
 	BeforeEach(func() {
 		sdClient = NewMockStackdriverClient()
-		logger = &MockLogger{}
 		subject = nozzle.Nozzle{
 			StackdriverClient: sdClient,
-			Serializer:        serializer.NewSerializer(caching.NewCachingEmpty(), logger),
-			Logger:            logger,
+			Serializer:        serializer.NewSerializer(caching.NewCachingEmpty(), nil),
 		}
 	})
 
@@ -116,21 +114,7 @@ var _ = Describe("Nozzle", func() {
 			))
 		})
 
-		It("should log an error if the client errors out", func() {
-			sdClient.postMetricError = errors.New("fail")
-			metricType := events.Envelope_ContainerMetric
-			envelope := &events.Envelope{
-				EventType:   &metricType,
-				ValueMetric: nil,
-			}
-
-			subject.HandleEvent(envelope)
-
-			Expect(logger.action).To(Equal("metricError"))
-			Expect(logger.err).To(Not(BeNil()))
-		})
-
-		XIt("returns error if client errors out", func() {
+		It("returns error if client errors out", func() {
 			sdClient.postMetricError = errors.New("fail")
 			metricType := events.Envelope_ContainerMetric
 			envelope := &events.Envelope{
@@ -141,49 +125,11 @@ var _ = Describe("Nozzle", func() {
 			err := subject.HandleEvent(envelope)
 
 			Expect(err).NotTo(BeNil())
-			Expect(err.Error()).To(ContainSubstring("diskBytesQuota: fail"))
-			Expect(err.Error()).To(ContainSubstring("memoryBytesQuota: fail"))
+			Expect(err.Error()).To(ContainSubstring("Name: diskBytesQuota Value: 0.000000, Error: fail"))
+			Expect(err.Error()).To(ContainSubstring("Name: memoryBytesQuota Value: 0.000000, Error: fail"))
 		})
 	})
 })
-
-type MockLogger struct {
-	err    error
-	action string
-}
-
-func (m *MockLogger) RegisterSink(lager.Sink) {
-	panic("NYI")
-}
-
-func (m *MockLogger) Session(task string, data ...lager.Data) lager.Logger {
-	panic("NYI")
-}
-
-func (m *MockLogger) SessionName() string {
-	panic("NYI")
-}
-
-func (m *MockLogger) Debug(action string, data ...lager.Data) {
-	panic("NYI")
-}
-
-func (m *MockLogger) Info(action string, data ...lager.Data) {
-	panic("NYI")
-}
-
-func (m *MockLogger) Error(action string, err error, data ...lager.Data) {
-	m.err = err
-	m.action = action
-}
-
-func (m *MockLogger) Fatal(action string, err error, data ...lager.Data) {
-	panic("NYI")
-}
-
-func (m *MockLogger) WithData(lager.Data) lager.Logger {
-	panic("NYI")
-}
 
 type MockStackdriverClient struct {
 	postedLogs    []PostedLog
