@@ -13,7 +13,7 @@ type filter struct {
 	enabled map[events.Envelope_EventType]bool
 }
 
-type InvalidEvent struct {
+type invalidEvent struct {
 	name string
 }
 
@@ -21,10 +21,10 @@ func parseEventName(name string) (events.Envelope_EventType, error) {
 	if eventId, ok := events.Envelope_EventType_value[name]; ok {
 		return events.Envelope_EventType(eventId), nil
 	}
-	return events.Envelope_Error, &InvalidEvent{name: name}
+	return events.Envelope_Error, &invalidEvent{name: name}
 }
 
-func (ie *InvalidEvent) Error() string {
+func (ie *invalidEvent) Error() string {
 	eventNames := []string{}
 	for _, name := range events.Envelope_EventType_name {
 		eventNames = append(eventNames, name)
