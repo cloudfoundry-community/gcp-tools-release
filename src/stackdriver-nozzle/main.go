@@ -1,19 +1,22 @@
 package main
 
 import (
+	"fmt"
+	"os"
+	"strings"
+
 	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
+
 	"stackdriver-nozzle/filter"
 	"stackdriver-nozzle/firehose"
 	"stackdriver-nozzle/nozzle"
 	"stackdriver-nozzle/serializer"
 	"stackdriver-nozzle/stackdriver"
 
-	"fmt"
-	"strings"
+	"github.com/cloudfoundry-community/go-cfclient"
+	"gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/cloudfoundry/lager"
-	"gopkg.in/alecthomas/kingpin.v2"
-	"os"
 )
 
 var (
@@ -49,10 +52,14 @@ var (
 			Default(stackdriver.DefaultBatchDuration).
 			OverrideDefaultFromEnvar("BATCH_DURATION").
 			Duration()
-	boltDatabasePath = kingpin.Flag("boltdb-path", "Bolt Database path").
+	boltDatabasePath = kingpin.Flag("boltdb-path", "bolt Database path").
 				Default("cached-app-metadata.db").
 				OverrideDefaultFromEnvar("BOLTDB_PATH").
 				String()
+	resolveCfMetadata = kingpin.Flag("resolve-cf-metadata", "resolve CloudFoundry app metadata (eg appName) in log output").
+				Default("true").
+				OverrideDefaultFromEnvar("RESOLVE_CF_METADATA").
+				Bool()
 )
 
 func main() {
@@ -61,12 +68,25 @@ func main() {
 	logger := lager.NewLogger("my-app")
 	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lager.DEBUG))
 
-	input := firehose.NewClient(*apiEndpoint, *username, *password, *skipSSLValidation, logger)
-
-	sdClient := stackdriver.NewClient(*projectID, *batchCount, *batchDuration, logger)
-	cachingClient := caching.NewCachingBolt(input.EnsureCfClient(), *boltDatabasePath)
 	// Initialize the caching client with the state of the world
-	cachingClient.GetAllApp()
+	cfConfig := &cfclient.Config{
+		ApiAddress:        *apiEndpoint,
+		Username:          *username,
+		Password:          *password,
+		SkipSslValidation: *skipSSLValidation}
+	cfClient := cfclient.NewClient(cfConfig)
+	input := firehose.NewClient(cfConfig, cfClient, logger)
+	sdClient := stackdriver.NewClient(*projectID, *batchCount, *batchDuration, logger)
+
+	var cachingClient caching.Caching
+	if *resolveCfMetadata {
+		cachingClient = caching.NewCachingBolt(cfClient, *boltDatabasePath)
+		// Initialize the caching client with the state of the world
+		cachingClient.GetAllApp()
+	} else {
+		fmt.Println("Not resolving CloudFoundry app metadata")
+	}
+
 	output := nozzle.Nozzle{
 		StackdriverClient: sdClient,
 		Serializer:        serializer.NewSerializer(cachingClient),

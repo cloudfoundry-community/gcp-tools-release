@@ -1,14 +1,14 @@
 package nozzle
 
 import (
-	"fmt"
 	"strings"
 
 	"stackdriver-nozzle/serializer"
+	"github.com/cloudfoundry/sonde-go/events"
 	"stackdriver-nozzle/stackdriver"
 
 	"github.com/cloudfoundry/lager"
-	"github.com/cloudfoundry/sonde-go/events"
+	"fmt"
 )
 
 type PostMetricError struct {

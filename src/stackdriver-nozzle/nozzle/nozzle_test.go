@@ -7,10 +7,11 @@ import (
 
 	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
 	"github.com/cloudfoundry/lager"
+	"stackdriver-nozzle/nozzle"
+
 	"github.com/cloudfoundry/sonde-go/events"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"stackdriver-nozzle/nozzle"
 	"stackdriver-nozzle/serializer"
 )
 
