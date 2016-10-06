@@ -116,9 +116,5 @@ func (s *client) PostMetric(name string, value float64, labels map[string]string
 			},
 		},
 	}
-	err := s.metricClient.CreateTimeSeries(s.ctx, req)
-	if err != nil {
-		fmt.Printf("Name: %v Value: %f Error: %v\n", name, value, err.Error())
-	}
-	return nil
+	return s.metricClient.CreateTimeSeries(s.ctx, req)
 }

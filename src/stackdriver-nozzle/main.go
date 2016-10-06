@@ -70,6 +70,7 @@ func main() {
 	output := nozzle.Nozzle{
 		StackdriverClient: sdClient,
 		Serializer:        serializer.NewSerializer(cachingClient),
+		Logger:            logger,
 	}
 
 	filteredOutput, err := filter.New(&output, strings.Split(*eventsFilter, ","))

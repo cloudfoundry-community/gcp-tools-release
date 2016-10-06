@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
+	"github.com/cloudfoundry/lager"
 	"github.com/cloudfoundry/sonde-go/events"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -15,13 +16,19 @@ import (
 
 var _ = Describe("Nozzle", func() {
 	var (
+		logger   *MockLogger
 		sdClient *MockStackdriverClient
 		subject  nozzle.Nozzle
 	)
 
 	BeforeEach(func() {
 		sdClient = NewMockStackdriverClient()
-		subject = nozzle.Nozzle{StackdriverClient: sdClient, Serializer: serializer.NewSerializer(caching.NewCachingEmpty())}
+		logger = &MockLogger{}
+		subject = nozzle.Nozzle{
+			StackdriverClient: sdClient,
+			Serializer:        serializer.NewSerializer(caching.NewCachingEmpty()),
+			Logger:            logger,
+		}
 	})
 
 	It("handles HttpStartStop", func() {
@@ -108,7 +115,20 @@ var _ = Describe("Nozzle", func() {
 			))
 		})
 
-		It("returns error if client errors out", func() {
+		It("should log an error if the client errors out", func() {
+			sdClient.postMetricError = errors.New("fail")
+			metricType := events.Envelope_ContainerMetric
+			envelope := &events.Envelope{
+				EventType:   &metricType,
+				ValueMetric: nil,
+			}
+
+			subject.HandleEvent(envelope)
+
+			Expect(logger.called).To(Equal(true))
+		})
+
+		XIt("returns error if client errors out", func() {
 			sdClient.postMetricError = errors.New("fail")
 			metricType := events.Envelope_ContainerMetric
 			envelope := &events.Envelope{
@@ -124,6 +144,42 @@ var _ = Describe("Nozzle", func() {
 		})
 	})
 })
+
+type MockLogger struct {
+	called bool
+}
+
+func (m *MockLogger) RegisterSink(lager.Sink) {
+	panic("NYI")
+}
+
+func (m *MockLogger) Session(task string, data ...lager.Data) lager.Logger {
+	panic("NYI")
+}
+
+func (m *MockLogger) SessionName() string {
+	panic("NYI")
+}
+
+func (m *MockLogger) Debug(action string, data ...lager.Data) {
+	panic("NYI")
+}
+
+func (m *MockLogger) Info(action string, data ...lager.Data) {
+	panic("NYI")
+}
+
+func (m *MockLogger) Error(action string, err error, data ...lager.Data) {
+	m.called = true
+}
+
+func (m *MockLogger) Fatal(action string, err error, data ...lager.Data) {
+	panic("NYI")
+}
+
+func (m *MockLogger) WithData(lager.Data) lager.Logger {
+	panic("NYI")
+}
 
 type MockStackdriverClient struct {
 	postedLogs    []PostedLog
