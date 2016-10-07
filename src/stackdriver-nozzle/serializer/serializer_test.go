@@ -129,6 +129,29 @@ var _ = Describe("Serializer", func() {
 			Expect(metrics).To(ContainElement(&serializer.Metric{"memoryBytes", float64(16601088), labels}))
 			Expect(metrics).To(ContainElement(&serializer.Metric{"memoryBytesQuota", float64(33554432), labels}))
 		})
+
+		It("creates metric for CounterEvent", func() {
+			eventType := events.Envelope_CounterEvent
+			name := "counterName"
+			total := uint64(123456)
+
+			event := events.CounterEvent{
+				Name:  &name,
+				Total: &total,
+			}
+			envelope := &events.Envelope{
+				EventType:    &eventType,
+				CounterEvent: &event,
+			}
+
+			labels := map[string]string{
+				"eventType": "CounterEvent",
+			}
+
+			metrics := subject.GetMetrics(envelope)
+			Expect(metrics).To(HaveLen(1))
+			Expect(metrics).To(ContainElement(&serializer.Metric{"counterName", float64(123456), labels}))
+		})
 	})
 
 	Context("isLog", func() {
@@ -159,7 +182,7 @@ var _ = Describe("Serializer", func() {
 			Expect(subject.IsLog(envelope)).To(BeFalse())
 		})
 
-		XIt("CounterEvent is *NOT* log", func() {
+		It("CounterEvent is *NOT* log", func() {
 			eventType := events.Envelope_CounterEvent
 
 			envelope := &events.Envelope{
@@ -253,8 +276,21 @@ var _ = Describe("Serializer", func() {
 
 			})
 
-			XIt("CounterEvent does not add app id", func() {
-				//TODO
+			It("CounterEvent does not add app id", func() {
+				eventType := events.Envelope_CounterEvent
+
+				event := events.CounterEvent{}
+				envelope := &events.Envelope{
+					EventType:    &eventType,
+					CounterEvent: &event,
+				}
+				metrics := subject.GetMetrics(envelope)
+
+				Expect(metrics).To(HaveLen(1))
+				valueMetric := metrics[0]
+
+				labels := valueMetric.Labels
+				Expect(labels).NotTo(HaveKey("applicationId"))
 			})
 
 			It("Error does not add app id", func() {

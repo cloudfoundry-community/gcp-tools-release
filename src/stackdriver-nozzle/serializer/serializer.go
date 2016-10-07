@@ -47,15 +47,16 @@ func (s *cachingClientSerializer) GetLog(e *events.Envelope) *Log {
 }
 
 func (s *cachingClientSerializer) GetMetrics(envelope *events.Envelope) []*Metric {
+	labels := s.buildLabels(envelope)
 	switch envelope.GetEventType() {
 	case events.Envelope_ValueMetric:
+		valueMetric := envelope.GetValueMetric()
 		return []*Metric{{
-			Name:   envelope.GetValueMetric().GetName(),
-			Value:  envelope.GetValueMetric().GetValue(),
-			Labels: s.buildLabels(envelope)}}
+			Name:   valueMetric.GetName(),
+			Value:  valueMetric.GetValue(),
+			Labels: labels}}
 	case events.Envelope_ContainerMetric:
 		containerMetric := envelope.GetContainerMetric()
-		labels := s.buildLabels(envelope)
 		return []*Metric{
 			{"diskBytesQuota", float64(containerMetric.GetDiskBytesQuota()), labels},
 			{"instanceIndex", float64(containerMetric.GetInstanceIndex()), labels},
@@ -64,6 +65,13 @@ func (s *cachingClientSerializer) GetMetrics(envelope *events.Envelope) []*Metri
 			{"memoryBytes", float64(containerMetric.GetMemoryBytes()), labels},
 			{"memoryBytesQuota", float64(containerMetric.GetMemoryBytesQuota()), labels},
 		}
+	case events.Envelope_CounterEvent:
+		counterEvent := envelope.GetCounterEvent()
+		return []*Metric{{
+			Name:   counterEvent.GetName(),
+			Value:  float64(counterEvent.GetTotal()),
+			Labels: labels,
+		}}
 	default:
 		s.logger.Error("unknownEventType", fmt.Errorf("unknown event type: %v", envelope.EventType))
 		return nil
@@ -75,11 +83,8 @@ func (s *cachingClientSerializer) IsLog(envelope *events.Envelope) bool {
 	switch *envelope.EventType {
 	case events.Envelope_HttpStartStop, events.Envelope_LogMessage, events.Envelope_Error:
 		return true
-	case events.Envelope_ValueMetric, events.Envelope_ContainerMetric:
+	case events.Envelope_ValueMetric, events.Envelope_ContainerMetric, events.Envelope_CounterEvent:
 		return false
-	case events.Envelope_CounterEvent:
-		//Not yet implemented as a metric
-		return true
 	default:
 		s.logger.Error("unknownEventType", fmt.Errorf("unknown event type: %v", envelope.EventType))
 		return false
