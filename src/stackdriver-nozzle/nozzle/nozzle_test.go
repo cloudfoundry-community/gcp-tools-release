@@ -78,6 +78,7 @@ var _ = Describe("Nozzle", func() {
 			diskBytes := uint64(164634624)
 			memoryBytes := uint64(16601088)
 			memoryBytesQuota := uint64(33554432)
+			eventTime := int64(123)
 			applicationId := "ee2aa52e-3c8a-4851-b505-0cb9fe24806e"
 
 			metricType := events.Envelope_ContainerMetric
@@ -94,6 +95,7 @@ var _ = Describe("Nozzle", func() {
 			envelope := &events.Envelope{
 				EventType:       &metricType,
 				ContainerMetric: &containerMetric,
+				Timestamp:       &eventTime,
 			}
 
 			err := subject.HandleEvent(envelope)
@@ -105,12 +107,12 @@ var _ = Describe("Nozzle", func() {
 			}
 			Expect(len(sdClient.postedMetrics)).To(Equal(6))
 			Expect(sdClient.postedMetrics).To(ConsistOf(
-				PostedMetric{"diskBytesQuota", float64(1073741824), labels},
-				PostedMetric{"instanceIndex", float64(0), labels},
-				PostedMetric{"cpuPercentage", 0.061651273460637, labels},
-				PostedMetric{"diskBytes", float64(164634624), labels},
-				PostedMetric{"memoryBytes", float64(16601088), labels},
-				PostedMetric{"memoryBytesQuota", float64(33554432), labels},
+				PostedMetric{"diskBytesQuota", float64(1073741824), eventTime, labels},
+				PostedMetric{"instanceIndex", float64(0), eventTime, labels},
+				PostedMetric{"cpuPercentage", 0.061651273460637, eventTime, labels},
+				PostedMetric{"diskBytes", float64(164634624), eventTime, labels},
+				PostedMetric{"memoryBytes", float64(16601088), eventTime, labels},
+				PostedMetric{"memoryBytesQuota", float64(33554432), eventTime, labels},
 			))
 		})
 
@@ -155,9 +157,9 @@ func (m *MockStackdriverClient) PostLog(payload interface{}, labels map[string]s
 	m.mutex.Unlock()
 }
 
-func (m *MockStackdriverClient) PostMetric(name string, value float64, labels map[string]string) error {
+func (m *MockStackdriverClient) PostMetric(name string, value float64, eventTime int64, labels map[string]string) error {
 	m.mutex.Lock()
-	m.postedMetrics = append(m.postedMetrics, PostedMetric{name, value, labels})
+	m.postedMetrics = append(m.postedMetrics, PostedMetric{name, value, eventTime, labels})
 	m.mutex.Unlock()
 
 	return m.postMetricError
@@ -169,7 +171,8 @@ type PostedLog struct {
 }
 
 type PostedMetric struct {
-	name   string
-	value  float64
-	labels map[string]string
+	name      string
+	value     float64
+	eventTime int64
+	labels    map[string]string
 }

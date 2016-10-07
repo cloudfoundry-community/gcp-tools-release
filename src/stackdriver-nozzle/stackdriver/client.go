@@ -7,6 +7,8 @@ import (
 
 	"path"
 
+	"stackdriver-nozzle/heartbeat"
+
 	"cloud.google.com/go/logging"
 	"cloud.google.com/go/monitoring/apiv3"
 	"github.com/cloudfoundry/lager"
@@ -15,12 +17,11 @@ import (
 	"google.golang.org/api/option"
 	"google.golang.org/genproto/googleapis/api/metric"
 	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
-	"stackdriver-nozzle/heartbeat"
 )
 
 type Client interface {
 	PostLog(payload interface{}, labels map[string]string)
-	PostMetric(name string, value float64, labels map[string]string) error
+	PostMetric(name string, value float64, eventTime int64, labels map[string]string) error
 }
 
 type client struct {
@@ -84,7 +85,7 @@ func (s *client) PostLog(payload interface{}, labels map[string]string) {
 	s.sdLogger.Log(entry)
 }
 
-func (s *client) PostMetric(name string, value float64, labels map[string]string) error {
+func (s *client) PostMetric(name string, value float64, eventTime int64, labels map[string]string) error {
 	s.heartbeater.AddCounter()
 	projectName := fmt.Sprintf("projects/%s", s.projectID)
 	metricType := path.Join("custom.googleapis.com", name)
@@ -101,10 +102,10 @@ func (s *client) PostMetric(name string, value float64, labels map[string]string
 					{
 						Interval: &monitoringpb.TimeInterval{
 							EndTime: &timestamp.Timestamp{
-								Seconds: time.Now().Unix(),
+								Seconds: eventTime,
 							},
 							StartTime: &timestamp.Timestamp{
-								Seconds: time.Now().Unix(),
+								Seconds: eventTime,
 							},
 						},
 						Value: &monitoringpb.TypedValue{

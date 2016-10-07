@@ -11,9 +11,10 @@ import (
 )
 
 type Metric struct {
-	Name   string
-	Value  float64
-	Labels map[string]string
+	Name      string
+	Value     float64
+	EventTime int64
+	Labels    map[string]string
 }
 
 type Log struct {
@@ -48,29 +49,33 @@ func (s *cachingClientSerializer) GetLog(e *events.Envelope) *Log {
 
 func (s *cachingClientSerializer) GetMetrics(envelope *events.Envelope) []*Metric {
 	labels := s.buildLabels(envelope)
+	eventTime := envelope.GetTimestamp()
+
 	switch envelope.GetEventType() {
 	case events.Envelope_ValueMetric:
 		valueMetric := envelope.GetValueMetric()
 		return []*Metric{{
-			Name:   valueMetric.GetName(),
-			Value:  valueMetric.GetValue(),
-			Labels: labels}}
+			Name:      valueMetric.GetName(),
+			Value:     valueMetric.GetValue(),
+			EventTime: eventTime,
+			Labels:    labels}}
 	case events.Envelope_ContainerMetric:
 		containerMetric := envelope.GetContainerMetric()
 		return []*Metric{
-			{"diskBytesQuota", float64(containerMetric.GetDiskBytesQuota()), labels},
-			{"instanceIndex", float64(containerMetric.GetInstanceIndex()), labels},
-			{"cpuPercentage", float64(containerMetric.GetCpuPercentage()), labels},
-			{"diskBytes", float64(containerMetric.GetDiskBytes()), labels},
-			{"memoryBytes", float64(containerMetric.GetMemoryBytes()), labels},
-			{"memoryBytesQuota", float64(containerMetric.GetMemoryBytesQuota()), labels},
+			{"diskBytesQuota", float64(containerMetric.GetDiskBytesQuota()), eventTime, labels},
+			{"instanceIndex", float64(containerMetric.GetInstanceIndex()), eventTime, labels},
+			{"cpuPercentage", float64(containerMetric.GetCpuPercentage()), eventTime, labels},
+			{"diskBytes", float64(containerMetric.GetDiskBytes()), eventTime, labels},
+			{"memoryBytes", float64(containerMetric.GetMemoryBytes()), eventTime, labels},
+			{"memoryBytesQuota", float64(containerMetric.GetMemoryBytesQuota()), eventTime, labels},
 		}
 	case events.Envelope_CounterEvent:
 		counterEvent := envelope.GetCounterEvent()
 		return []*Metric{{
-			Name:   counterEvent.GetName(),
-			Value:  float64(counterEvent.GetTotal()),
-			Labels: labels,
+			Name:      counterEvent.GetName(),
+			Value:     float64(counterEvent.GetTotal()),
+			EventTime: eventTime,
+			Labels:    labels,
 		}}
 	default:
 		s.logger.Error("unknownEventType", fmt.Errorf("unknown event type: %v", envelope.EventType))

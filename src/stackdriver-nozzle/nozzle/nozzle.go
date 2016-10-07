@@ -43,7 +43,7 @@ func (n *Nozzle) postMetrics(metrics []*serializer.Metric) error {
 	errorsCh := make(chan error)
 
 	for _, metric := range metrics {
-		n.postMetric(errorsCh, metric.Name, metric.Value, metric.Labels)
+		n.postMetric(errorsCh, metric.Name, metric.Value, metric.EventTime, metric.Labels)
 	}
 
 	errors := []error{}
@@ -63,9 +63,9 @@ func (n *Nozzle) postMetrics(metrics []*serializer.Metric) error {
 	}
 }
 
-func (n *Nozzle) postMetric(errorsCh chan error, name string, value float64, labels map[string]string) {
+func (n *Nozzle) postMetric(errorsCh chan error, name string, value float64, eventTime int64, labels map[string]string) {
 	go func() {
-		err := n.StackdriverClient.PostMetric(name, value, labels)
+		err := n.StackdriverClient.PostMetric(name, value, eventTime, labels)
 		if err != nil {
 			errorsCh <- fmt.Errorf("name: %v value: %f, error: %v", name, value, err.Error())
 		} else {

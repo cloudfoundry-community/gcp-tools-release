@@ -95,6 +95,7 @@ var _ = Describe("Serializer", func() {
 			diskBytes := uint64(164634624)
 			memoryBytes := uint64(16601088)
 			memoryBytesQuota := uint64(33554432)
+			timeStamp := int64(123)
 			applicationId := "ee2aa52e-3c8a-4851-b505-0cb9fe24806e"
 
 			metricType := events.Envelope_ContainerMetric
@@ -111,6 +112,7 @@ var _ = Describe("Serializer", func() {
 			envelope := &events.Envelope{
 				EventType:       &metricType,
 				ContainerMetric: &containerMetric,
+				Timestamp:       &timeStamp,
 			}
 
 			labels := map[string]string{
@@ -122,18 +124,19 @@ var _ = Describe("Serializer", func() {
 
 			Expect(metrics).To(HaveLen(6))
 
-			Expect(metrics).To(ContainElement(&serializer.Metric{"diskBytesQuota", float64(1073741824), labels}))
-			Expect(metrics).To(ContainElement(&serializer.Metric{"instanceIndex", float64(0), labels}))
-			Expect(metrics).To(ContainElement(&serializer.Metric{"cpuPercentage", 0.061651273460637, labels}))
-			Expect(metrics).To(ContainElement(&serializer.Metric{"diskBytes", float64(164634624), labels}))
-			Expect(metrics).To(ContainElement(&serializer.Metric{"memoryBytes", float64(16601088), labels}))
-			Expect(metrics).To(ContainElement(&serializer.Metric{"memoryBytesQuota", float64(33554432), labels}))
+			Expect(metrics).To(ContainElement(&serializer.Metric{"diskBytesQuota", float64(1073741824), 123, labels}))
+			Expect(metrics).To(ContainElement(&serializer.Metric{"instanceIndex", float64(0), 123, labels}))
+			Expect(metrics).To(ContainElement(&serializer.Metric{"cpuPercentage", 0.061651273460637, 123, labels}))
+			Expect(metrics).To(ContainElement(&serializer.Metric{"diskBytes", float64(164634624), 123, labels}))
+			Expect(metrics).To(ContainElement(&serializer.Metric{"memoryBytes", float64(16601088), 123, labels}))
+			Expect(metrics).To(ContainElement(&serializer.Metric{"memoryBytesQuota", float64(33554432), 123, labels}))
 		})
 
 		It("creates metric for CounterEvent", func() {
 			eventType := events.Envelope_CounterEvent
 			name := "counterName"
 			total := uint64(123456)
+			eventTime := int64(123)
 
 			event := events.CounterEvent{
 				Name:  &name,
@@ -142,6 +145,7 @@ var _ = Describe("Serializer", func() {
 			envelope := &events.Envelope{
 				EventType:    &eventType,
 				CounterEvent: &event,
+				Timestamp:    &eventTime,
 			}
 
 			labels := map[string]string{
@@ -150,7 +154,7 @@ var _ = Describe("Serializer", func() {
 
 			metrics := subject.GetMetrics(envelope)
 			Expect(metrics).To(HaveLen(1))
-			Expect(metrics).To(ContainElement(&serializer.Metric{"counterName", float64(123456), labels}))
+			Expect(metrics).To(ContainElement(&serializer.Metric{"counterName", float64(123456), eventTime, labels}))
 		})
 	})
 
