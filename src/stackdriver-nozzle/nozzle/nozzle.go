@@ -9,6 +9,7 @@ import (
 	"github.com/cloudfoundry/sonde-go/events"
 
 	"fmt"
+	"google.golang.org/genproto/googleapis/monitoring/v3"
 )
 
 type PostMetricError struct {
@@ -31,7 +32,7 @@ type Nozzle struct {
 func (n *Nozzle) HandleEvent(envelope *events.Envelope) error {
 	if n.Serializer.IsLog(envelope) {
 		log := n.Serializer.GetLog(envelope)
-		n.StackdriverClient.PostLog(log.Payload, log.Labels)
+		n.StackdriverClient.PostLog(log)
 		return nil
 	} else {
 		metrics, err := n.Serializer.GetMetrics(envelope)
@@ -42,11 +43,11 @@ func (n *Nozzle) HandleEvent(envelope *events.Envelope) error {
 	}
 }
 
-func (n *Nozzle) postMetrics(metrics []*serializer.Metric) error {
+func (n *Nozzle) postMetrics(metrics []*google_monitoring_v3.CreateTimeSeriesRequest) error {
 	errorsCh := make(chan error)
 
 	for _, metric := range metrics {
-		n.postMetric(errorsCh, metric.Name, metric.Value, metric.EventTime, metric.Labels)
+		n.postMetric(errorsCh, metric)
 	}
 
 	errors := []error{}
@@ -66,11 +67,11 @@ func (n *Nozzle) postMetrics(metrics []*serializer.Metric) error {
 	}
 }
 
-func (n *Nozzle) postMetric(errorsCh chan error, name string, value float64, eventTime int64, labels map[string]string) {
+func (n *Nozzle) postMetric(errorsCh chan error, request *google_monitoring_v3.CreateTimeSeriesRequest) {
 	go func() {
-		err := n.StackdriverClient.PostMetric(name, value, eventTime, labels)
+		err := n.StackdriverClient.PostMetric(request)
 		if err != nil {
-			errorsCh <- fmt.Errorf("name: %v value: %f, error: %v", name, value, err.Error())
+			errorsCh <- fmt.Errorf("request: %+v, error: %v", request, err.Error())
 		} else {
 			errorsCh <- nil
 		}

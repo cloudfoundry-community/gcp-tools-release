@@ -47,6 +47,8 @@ var _ = Describe("Serializer", func() {
 
 		log := subject.GetLog(envelope)
 
+		Expect(log).ToNot(BeNil())
+
 		labels := log.Labels
 		Expect(labels).To(Equal(map[string]string{
 			"origin":     origin,
@@ -123,17 +125,106 @@ var _ = Describe("Serializer", func() {
 				"applicationId": applicationId,
 			}
 
-			metrics, err := subject.GetMetrics(envelope)
+			requests, err := subject.GetMetrics(envelope)
 			Expect(err).To(BeNil())
 
-			Expect(metrics).To(HaveLen(6))
+			Expect(requests).To(HaveLen(6))
 
-			Expect(metrics).To(ContainElement(&serializer.Metric{"diskBytesQuota", float64(1073741824), 123, labels}))
-			Expect(metrics).To(ContainElement(&serializer.Metric{"instanceIndex", float64(0), 123, labels}))
-			Expect(metrics).To(ContainElement(&serializer.Metric{"cpuPercentage", 0.061651273460637, 123, labels}))
-			Expect(metrics).To(ContainElement(&serializer.Metric{"diskBytes", float64(164634624), 123, labels}))
-			Expect(metrics).To(ContainElement(&serializer.Metric{"memoryBytes", float64(16601088), 123, labels}))
-			Expect(metrics).To(ContainElement(&serializer.Metric{"memoryBytesQuota", float64(33554432), 123, labels}))
+			Context("diskBytesQuota", func() {
+				request := requests[0]
+				timeSeries := request.TimeSeries
+				Expect(timeSeries).To(HaveLen(1))
+
+				metric := timeSeries[0].Metric
+				Expect(metric.Type).To(Equal("custom.googleapis.com/diskBytesQuota"))
+				Expect(metric.GetLabels()).To(Equal(labels))
+
+				points := timeSeries[0].Points
+				Expect(points).To(HaveLen(1))
+				Expect(points[0].Value.GetDoubleValue()).To(Equal(float64(1073741824)))
+				Expect(points[0].GetInterval().GetEndTime().Seconds).To(Equal(int64(123)))
+				Expect(points[0].GetInterval().GetStartTime().Seconds).To(Equal(int64(123)))
+			})
+
+			Context("instanceIndex", func() {
+				request := requests[1]
+				timeSeries := request.TimeSeries
+				Expect(timeSeries).To(HaveLen(1))
+
+				metric := timeSeries[0].Metric
+				Expect(metric.Type).To(Equal("custom.googleapis.com/instanceIndex"))
+				Expect(metric.GetLabels()).To(Equal(labels))
+
+				points := timeSeries[0].Points
+				Expect(points).To(HaveLen(1))
+				Expect(points[0].Value.GetDoubleValue()).To(Equal(float64(0)))
+				Expect(points[0].GetInterval().GetEndTime().Seconds).To(Equal(int64(123)))
+				Expect(points[0].GetInterval().GetStartTime().Seconds).To(Equal(int64(123)))
+			})
+
+			Context("cpuPercentage", func() {
+				request := requests[2]
+				timeSeries := request.TimeSeries
+				Expect(timeSeries).To(HaveLen(1))
+
+				metric := timeSeries[0].Metric
+				Expect(metric.Type).To(Equal("custom.googleapis.com/cpuPercentage"))
+				Expect(metric.GetLabels()).To(Equal(labels))
+
+				points := timeSeries[0].Points
+				Expect(points).To(HaveLen(1))
+				Expect(points[0].Value.GetDoubleValue()).To(Equal(float64(0.061651273460637)))
+				Expect(points[0].GetInterval().GetEndTime().Seconds).To(Equal(int64(123)))
+				Expect(points[0].GetInterval().GetStartTime().Seconds).To(Equal(int64(123)))
+			})
+
+			Context("diskBytes", func() {
+				request := requests[3]
+				timeSeries := request.TimeSeries
+				Expect(timeSeries).To(HaveLen(1))
+
+				metric := timeSeries[0].Metric
+				Expect(metric.Type).To(Equal("custom.googleapis.com/diskBytes"))
+				Expect(metric.GetLabels()).To(Equal(labels))
+
+				points := timeSeries[0].Points
+				Expect(points).To(HaveLen(1))
+				Expect(points[0].Value.GetDoubleValue()).To(Equal(float64(164634624)))
+				Expect(points[0].GetInterval().GetEndTime().Seconds).To(Equal(int64(123)))
+				Expect(points[0].GetInterval().GetStartTime().Seconds).To(Equal(int64(123)))
+			})
+
+			Context("memoryBytes", func() {
+				request := requests[4]
+				timeSeries := request.TimeSeries
+				Expect(timeSeries).To(HaveLen(1))
+
+				metric := timeSeries[0].Metric
+				Expect(metric.Type).To(Equal("custom.googleapis.com/memoryBytes"))
+				Expect(metric.GetLabels()).To(Equal(labels))
+
+				points := timeSeries[0].Points
+				Expect(points).To(HaveLen(1))
+				Expect(points[0].Value.GetDoubleValue()).To(Equal(float64(16601088)))
+				Expect(points[0].GetInterval().GetEndTime().Seconds).To(Equal(int64(123)))
+				Expect(points[0].GetInterval().GetStartTime().Seconds).To(Equal(int64(123)))
+			})
+
+			Context("memoryBytesQuota", func() {
+				request := requests[5]
+				timeSeries := request.TimeSeries
+				Expect(timeSeries).To(HaveLen(1))
+
+				metric := timeSeries[0].Metric
+				Expect(metric.Type).To(Equal("custom.googleapis.com/memoryBytesQuota"))
+				Expect(metric.GetLabels()).To(Equal(labels))
+
+				points := timeSeries[0].Points
+				Expect(points).To(HaveLen(1))
+				Expect(points[0].Value.GetDoubleValue()).To(Equal(float64(33554432)))
+				Expect(points[0].GetInterval().GetEndTime().Seconds).To(Equal(int64(123)))
+				Expect(points[0].GetInterval().GetStartTime().Seconds).To(Equal(int64(123)))
+			})
 		})
 
 		It("creates metric for CounterEvent", func() {
@@ -156,36 +247,61 @@ var _ = Describe("Serializer", func() {
 				"eventType": "CounterEvent",
 			}
 
-			metrics, err := subject.GetMetrics(envelope)
+			requests, err := subject.GetMetrics(envelope)
 			Expect(err).To(BeNil())
-			Expect(metrics).To(HaveLen(1))
-			Expect(metrics).To(ContainElement(&serializer.Metric{"counterName", float64(123456), eventTime, labels}))
+			Expect(requests).To(HaveLen(1))
+
+			request := requests[0]
+			timeSeries := request.TimeSeries
+			Expect(timeSeries).To(HaveLen(1))
+
+			metric := timeSeries[0].Metric
+			Expect(metric.Type).To(Equal("custom.googleapis.com/counterName"))
+			Expect(metric.GetLabels()).To(Equal(labels))
+
+			points := timeSeries[0].Points
+			Expect(points).To(HaveLen(1))
+			Expect(points[0].Value.GetDoubleValue()).To(Equal(float64(123456)))
+			Expect(points[0].GetInterval().GetEndTime().Seconds).To(Equal(eventTime))
+			Expect(points[0].GetInterval().GetStartTime().Seconds).To(Equal(eventTime))
 		})
 
-		It("creates metric for CounterEvent", func() {
-			eventType := events.Envelope_CounterEvent
-			name := "counterName"
-			total := uint64(123456)
+		It("creates metric for ValueMetric", func() {
+			eventType := events.Envelope_ValueMetric
+			name := "valueMetricEvent"
+			value := float64(123456)
 			eventTime := int64(123)
 
-			event := events.CounterEvent{
+			event := events.ValueMetric{
 				Name:  &name,
-				Total: &total,
+				Value: &value,
 			}
 			envelope := &events.Envelope{
-				EventType:    &eventType,
-				CounterEvent: &event,
-				Timestamp:    &eventTime,
+				EventType:   &eventType,
+				ValueMetric: &event,
+				Timestamp:   &eventTime,
 			}
 
 			labels := map[string]string{
-				"eventType": "CounterEvent",
+				"eventType": "ValueMetric",
 			}
 
-			metrics, err := subject.GetMetrics(envelope)
+			requests, err := subject.GetMetrics(envelope)
 			Expect(err).To(BeNil())
-			Expect(metrics).To(HaveLen(1))
-			Expect(metrics).To(ContainElement(&serializer.Metric{"counterName", float64(123456), eventTime, labels}))
+			Expect(requests).To(HaveLen(1))
+			request := requests[0]
+			timeSeries := request.TimeSeries
+			Expect(timeSeries).To(HaveLen(1))
+
+			metric := timeSeries[0].Metric
+			Expect(metric.Type).To(Equal("custom.googleapis.com/valueMetricEvent"))
+			Expect(metric.GetLabels()).To(Equal(labels))
+
+			points := timeSeries[0].Points
+			Expect(points).To(HaveLen(1))
+			Expect(points[0].Value.GetDoubleValue()).To(Equal(float64(123456)))
+			Expect(points[0].GetInterval().GetEndTime().Seconds).To(Equal(eventTime))
+			Expect(points[0].GetInterval().GetStartTime().Seconds).To(Equal(eventTime))
 		})
 
 		It("returns error when envelope contains unhandled event type", func() {
@@ -195,6 +311,33 @@ var _ = Describe("Serializer", func() {
 			}
 			_, err := subject.GetMetrics(envelope)
 			Expect(err).NotTo(BeNil())
+		})
+	})
+
+	Context("GetLog", func() {
+		It("should return the correct payload", func() {
+			eventType := events.Envelope_HttpStartStop
+			uri := "some/uri"
+			httpStartStop := events.HttpStartStop{
+				Uri: &uri,
+			}
+
+			envelope := &events.Envelope{
+				EventType:     &eventType,
+				HttpStartStop: &httpStartStop,
+			}
+
+			log := subject.GetLog(envelope)
+
+			Expect(log).ToNot(BeNil())
+
+			labels := log.Labels
+			payload := log.Payload
+			Expect(labels).To(Equal(map[string]string{
+				"eventType": eventType.String(),
+			}))
+
+			Expect(payload).To(Equal(envelope))
 		})
 	})
 
@@ -316,9 +459,15 @@ var _ = Describe("Serializer", func() {
 				Expect(metrics).To(HaveLen(1))
 				valueMetric := metrics[0]
 
-				labels := valueMetric.Labels
-				Expect(labels).NotTo(HaveKey("applicationId"))
+				//todo: test .Name (in a different test, just a reminder)
+				//Expect(valueMetric.Name).To(Equal("projects/"))
 
+				timeSerieses := valueMetric.TimeSeries
+				Expect(timeSerieses).To(HaveLen(1))
+
+				timeSeries := timeSerieses[0]
+				metric := timeSeries.GetMetric()
+				Expect(metric.GetLabels()).NotTo(HaveKey("applicationId"))
 			})
 
 			It("CounterEvent does not add app id", func() {
@@ -335,8 +484,15 @@ var _ = Describe("Serializer", func() {
 				Expect(metrics).To(HaveLen(1))
 				valueMetric := metrics[0]
 
-				labels := valueMetric.Labels
-				Expect(labels).NotTo(HaveKey("applicationId"))
+				//todo: test .Name (in a different test, just a reminder)
+				//Expect(valueMetric.Name).To(Equal("projects/"))
+
+				timeSerieses := valueMetric.TimeSeries
+				Expect(timeSerieses).To(HaveLen(1))
+
+				timeSeries := timeSerieses[0]
+				metric := timeSeries.GetMetric()
+				Expect(metric.GetLabels()).NotTo(HaveKey("applicationId"))
 			})
 
 			It("Error does not add app id", func() {
@@ -370,9 +526,12 @@ var _ = Describe("Serializer", func() {
 				Expect(err).To(BeNil())
 
 				Expect(len(metrics)).To(Not(Equal(0)))
-
 				for _, metric := range metrics {
-					labels := metric.Labels
+					timeSerieses := metric.TimeSeries
+					Expect(timeSerieses).To(HaveLen(1))
+					timeSeries := timeSerieses[0]
+					metric := timeSeries.GetMetric()
+					labels := metric.GetLabels()
 					Expect(labels["applicationId"]).To(Equal(appGuid))
 
 				}

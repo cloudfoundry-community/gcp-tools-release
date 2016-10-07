@@ -3,25 +3,19 @@ package stackdriver
 import (
 	"time"
 
-	"fmt"
-
-	"path"
-
 	"stackdriver-nozzle/heartbeat"
 
 	"cloud.google.com/go/logging"
 	"cloud.google.com/go/monitoring/apiv3"
 	"github.com/cloudfoundry/lager"
-	"github.com/golang/protobuf/ptypes/timestamp"
 	"golang.org/x/net/context"
 	"google.golang.org/api/option"
-	"google.golang.org/genproto/googleapis/api/metric"
 	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
 )
 
 type Client interface {
-	PostLog(payload interface{}, labels map[string]string)
-	PostMetric(name string, value float64, eventTime int64, labels map[string]string) error
+	PostLog(log *logging.Entry)
+	PostMetric(req *monitoringpb.CreateTimeSeriesRequest) error
 }
 
 type client struct {
@@ -76,47 +70,14 @@ func newLogger(ctx context.Context, projectID string, batchCount int, batchDurat
 	)
 }
 
-func (s *client) PostLog(payload interface{}, labels map[string]string) {
+func (s *client) PostLog(log *logging.Entry) {
 	s.heartbeater.AddCounter()
-	entry := logging.Entry{
-		Payload: payload,
-		Labels:  labels,
-	}
-	s.sdLogger.Log(entry)
+	s.sdLogger.Log(*log)
 }
 
-func (s *client) PostMetric(name string, value float64, eventTime int64, labels map[string]string) error {
+func (s *client) PostMetric(req *monitoringpb.CreateTimeSeriesRequest) error {
 	s.heartbeater.AddCounter()
-	projectName := fmt.Sprintf("projects/%s", s.projectID)
-	metricType := path.Join("custom.googleapis.com", name)
+	//projectName := fmt.Sprintf("projects/%s", s.projectID)
 
-	req := &monitoringpb.CreateTimeSeriesRequest{
-		Name: projectName,
-		TimeSeries: []*monitoringpb.TimeSeries{
-			{
-				Metric: &google_api.Metric{
-					Type:   metricType,
-					Labels: labels,
-				},
-				Points: []*monitoringpb.Point{
-					{
-						Interval: &monitoringpb.TimeInterval{
-							EndTime: &timestamp.Timestamp{
-								Seconds: eventTime,
-							},
-							StartTime: &timestamp.Timestamp{
-								Seconds: eventTime,
-							},
-						},
-						Value: &monitoringpb.TypedValue{
-							Value: &monitoringpb.TypedValue_DoubleValue{
-								DoubleValue: value,
-							},
-						},
-					},
-				},
-			},
-		},
-	}
 	return s.metricClient.CreateTimeSeries(s.ctx, req)
 }
