@@ -7,16 +7,19 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"stackdriver-nozzle/mocks"
 	"stackdriver-nozzle/serializer"
 )
 
 var _ = Describe("Serializer", func() {
 	var (
 		subject serializer.Serializer
+		logger  *mocks.MockLogger
 	)
 
 	BeforeEach(func() {
-		subject = serializer.NewSerializer(caching.NewCachingEmpty(), nil)
+		logger = &mocks.MockLogger{}
+		subject = serializer.NewSerializer(caching.NewCachingEmpty(), logger)
 	})
 
 	It("has labels equivalent to its fields", func() {
@@ -120,7 +123,8 @@ var _ = Describe("Serializer", func() {
 				"applicationId": applicationId,
 			}
 
-			metrics := subject.GetMetrics(envelope)
+			metrics, err := subject.GetMetrics(envelope)
+			Expect(err).To(BeNil())
 
 			Expect(metrics).To(HaveLen(6))
 
@@ -152,9 +156,45 @@ var _ = Describe("Serializer", func() {
 				"eventType": "CounterEvent",
 			}
 
-			metrics := subject.GetMetrics(envelope)
+			metrics, err := subject.GetMetrics(envelope)
+			Expect(err).To(BeNil())
 			Expect(metrics).To(HaveLen(1))
 			Expect(metrics).To(ContainElement(&serializer.Metric{"counterName", float64(123456), eventTime, labels}))
+		})
+
+		It("creates metric for CounterEvent", func() {
+			eventType := events.Envelope_CounterEvent
+			name := "counterName"
+			total := uint64(123456)
+			eventTime := int64(123)
+
+			event := events.CounterEvent{
+				Name:  &name,
+				Total: &total,
+			}
+			envelope := &events.Envelope{
+				EventType:    &eventType,
+				CounterEvent: &event,
+				Timestamp:    &eventTime,
+			}
+
+			labels := map[string]string{
+				"eventType": "CounterEvent",
+			}
+
+			metrics, err := subject.GetMetrics(envelope)
+			Expect(err).To(BeNil())
+			Expect(metrics).To(HaveLen(1))
+			Expect(metrics).To(ContainElement(&serializer.Metric{"counterName", float64(123456), eventTime, labels}))
+		})
+
+		It("returns error when envelope contains unhandled event type", func() {
+			eventType := events.Envelope_HttpStart
+			envelope := &events.Envelope{
+				EventType: &eventType,
+			}
+			_, err := subject.GetMetrics(envelope)
+			Expect(err).NotTo(BeNil())
 		})
 	})
 
@@ -270,7 +310,8 @@ var _ = Describe("Serializer", func() {
 					EventType:   &eventType,
 					ValueMetric: &event,
 				}
-				metrics := subject.GetMetrics(envelope)
+				metrics, err := subject.GetMetrics(envelope)
+				Expect(err).To(BeNil())
 
 				Expect(metrics).To(HaveLen(1))
 				valueMetric := metrics[0]
@@ -288,7 +329,8 @@ var _ = Describe("Serializer", func() {
 					EventType:    &eventType,
 					CounterEvent: &event,
 				}
-				metrics := subject.GetMetrics(envelope)
+				metrics, err := subject.GetMetrics(envelope)
+				Expect(err).To(BeNil())
 
 				Expect(metrics).To(HaveLen(1))
 				valueMetric := metrics[0]
@@ -323,7 +365,9 @@ var _ = Describe("Serializer", func() {
 					ContainerMetric: &event,
 				}
 
-				metrics := subject.GetMetrics(envelope)
+				metrics, err := subject.GetMetrics(envelope)
+
+				Expect(err).To(BeNil())
 
 				Expect(len(metrics)).To(Not(Equal(0)))
 

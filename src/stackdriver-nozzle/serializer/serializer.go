@@ -24,7 +24,7 @@ type Log struct {
 
 type Serializer interface {
 	GetLog(*events.Envelope) *Log
-	GetMetrics(*events.Envelope) []*Metric
+	GetMetrics(*events.Envelope) ([]*Metric, error)
 	IsLog(*events.Envelope) bool
 }
 
@@ -47,7 +47,7 @@ func (s *cachingClientSerializer) GetLog(e *events.Envelope) *Log {
 	return &Log{Payload: e, Labels: s.buildLabels(e)}
 }
 
-func (s *cachingClientSerializer) GetMetrics(envelope *events.Envelope) []*Metric {
+func (s *cachingClientSerializer) GetMetrics(envelope *events.Envelope) ([]*Metric, error) {
 	labels := s.buildLabels(envelope)
 	eventTime := envelope.GetTimestamp()
 
@@ -58,7 +58,7 @@ func (s *cachingClientSerializer) GetMetrics(envelope *events.Envelope) []*Metri
 			Name:      valueMetric.GetName(),
 			Value:     valueMetric.GetValue(),
 			EventTime: eventTime,
-			Labels:    labels}}
+			Labels:    labels}}, nil
 	case events.Envelope_ContainerMetric:
 		containerMetric := envelope.GetContainerMetric()
 		return []*Metric{
@@ -68,7 +68,7 @@ func (s *cachingClientSerializer) GetMetrics(envelope *events.Envelope) []*Metri
 			{"diskBytes", float64(containerMetric.GetDiskBytes()), eventTime, labels},
 			{"memoryBytes", float64(containerMetric.GetMemoryBytes()), eventTime, labels},
 			{"memoryBytesQuota", float64(containerMetric.GetMemoryBytesQuota()), eventTime, labels},
-		}
+		}, nil
 	case events.Envelope_CounterEvent:
 		counterEvent := envelope.GetCounterEvent()
 		return []*Metric{{
@@ -76,23 +76,19 @@ func (s *cachingClientSerializer) GetMetrics(envelope *events.Envelope) []*Metri
 			Value:     float64(counterEvent.GetTotal()),
 			EventTime: eventTime,
 			Labels:    labels,
-		}}
+		}}, nil
 	default:
-		s.logger.Error("unknownEventType", fmt.Errorf("unknown event type: %v", envelope.EventType))
-		return nil
+		return nil, fmt.Errorf("unknown event type: %v", envelope.EventType)
 	}
 
 }
 
 func (s *cachingClientSerializer) IsLog(envelope *events.Envelope) bool {
 	switch *envelope.EventType {
-	case events.Envelope_HttpStartStop, events.Envelope_LogMessage, events.Envelope_Error:
-		return true
 	case events.Envelope_ValueMetric, events.Envelope_ContainerMetric, events.Envelope_CounterEvent:
 		return false
 	default:
-		s.logger.Error("unknownEventType", fmt.Errorf("unknown event type: %v", envelope.EventType))
-		return false
+		return true
 	}
 }
 
