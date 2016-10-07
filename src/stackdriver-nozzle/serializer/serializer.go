@@ -3,27 +3,21 @@ package serializer
 import (
 	"fmt"
 
+	"cloud.google.com/go/logging"
 	"errors"
 	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
 	"github.com/cloudfoundry-community/firehose-to-syslog/utils"
 	"github.com/cloudfoundry/lager"
 	"github.com/cloudfoundry/sonde-go/events"
+	"github.com/golang/protobuf/ptypes/timestamp"
+	"google.golang.org/genproto/googleapis/api/metric"
+	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
+	"path"
 )
 
-type Metric struct {
-	Name   string
-	Value  float64
-	Labels map[string]string
-}
-
-type Log struct {
-	Payload interface{}
-	Labels  map[string]string
-}
-
 type Serializer interface {
-	GetLog(*events.Envelope) *Log
-	GetMetrics(*events.Envelope) ([]*Metric, error)
+	GetLog(*events.Envelope) *logging.Entry
+	GetMetrics(*events.Envelope) ([]*monitoringpb.CreateTimeSeriesRequest, error)
 	IsLog(*events.Envelope) bool
 }
 
@@ -42,36 +36,88 @@ func NewSerializer(cachingClient caching.Caching, logger lager.Logger) Serialize
 	return &cachingClientSerializer{cachingClient, logger}
 }
 
-func (s *cachingClientSerializer) GetLog(e *events.Envelope) *Log {
-	return &Log{Payload: e, Labels: s.buildLabels(e)}
+func (s *cachingClientSerializer) GetLog(e *events.Envelope) *logging.Entry {
+	return &logging.Entry{
+		Payload: e,
+		Labels:  s.buildLabels(e),
+	}
 }
 
-func (s *cachingClientSerializer) GetMetrics(envelope *events.Envelope) ([]*Metric, error) {
+func (s *cachingClientSerializer) buildTimeSeriesRequest(projectID string, name string, value float64, eventTime int64, labels map[string]string) *monitoringpb.CreateTimeSeriesRequest {
+	projectName := fmt.Sprintf("projects/%s", projectID)
+	metricType := path.Join("custom.googleapis.com", name)
+
+	return &monitoringpb.CreateTimeSeriesRequest{
+		Name: projectName,
+		TimeSeries: []*monitoringpb.TimeSeries{
+			{
+				Metric: &google_api.Metric{
+					Type:   metricType,
+					Labels: labels,
+				},
+				Points: []*monitoringpb.Point{
+					{
+						Interval: &monitoringpb.TimeInterval{
+							EndTime: &timestamp.Timestamp{
+								Seconds: eventTime,
+							},
+							StartTime: &timestamp.Timestamp{
+								Seconds: eventTime,
+							},
+						},
+						Value: &monitoringpb.TypedValue{
+							Value: &monitoringpb.TypedValue_DoubleValue{
+								DoubleValue: value,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func (s *cachingClientSerializer) GetMetrics(envelope *events.Envelope) ([]*monitoringpb.CreateTimeSeriesRequest, error) {
 	labels := s.buildLabels(envelope)
+	eventTime := envelope.GetTimestamp()
+
 	switch envelope.GetEventType() {
 	case events.Envelope_ValueMetric:
 		valueMetric := envelope.GetValueMetric()
-		return []*Metric{{
-			Name:   valueMetric.GetName(),
-			Value:  valueMetric.GetValue(),
-			Labels: labels}}, nil
+		return []*monitoringpb.CreateTimeSeriesRequest{
+			s.buildTimeSeriesRequest(
+				"todo", valueMetric.GetName(), valueMetric.GetValue(), eventTime, labels,
+			),
+		}, nil
 	case events.Envelope_ContainerMetric:
 		containerMetric := envelope.GetContainerMetric()
-		return []*Metric{
-			{"diskBytesQuota", float64(containerMetric.GetDiskBytesQuota()), labels},
-			{"instanceIndex", float64(containerMetric.GetInstanceIndex()), labels},
-			{"cpuPercentage", float64(containerMetric.GetCpuPercentage()), labels},
-			{"diskBytes", float64(containerMetric.GetDiskBytes()), labels},
-			{"memoryBytes", float64(containerMetric.GetMemoryBytes()), labels},
-			{"memoryBytesQuota", float64(containerMetric.GetMemoryBytesQuota()), labels},
+		return []*monitoringpb.CreateTimeSeriesRequest{
+			s.buildTimeSeriesRequest(
+				"todo", "diskBytesQuota", float64(containerMetric.GetDiskBytesQuota()), eventTime, labels,
+			),
+			s.buildTimeSeriesRequest(
+				"todo", "instanceIndex", float64(containerMetric.GetInstanceIndex()), eventTime, labels,
+			),
+			s.buildTimeSeriesRequest(
+				"todo", "cpuPercentage", float64(containerMetric.GetCpuPercentage()), eventTime, labels,
+			),
+			s.buildTimeSeriesRequest(
+				"todo", "diskBytes", float64(containerMetric.GetDiskBytes()), eventTime, labels,
+			),
+			s.buildTimeSeriesRequest(
+				"todo", "memoryBytes", float64(containerMetric.GetMemoryBytes()), eventTime, labels,
+			),
+			s.buildTimeSeriesRequest(
+				"todo", "memoryBytesQuota", float64(containerMetric.GetMemoryBytesQuota()), eventTime, labels,
+			),
 		}, nil
 	case events.Envelope_CounterEvent:
 		counterEvent := envelope.GetCounterEvent()
-		return []*Metric{{
-			Name:   counterEvent.GetName(),
-			Value:  float64(counterEvent.GetTotal()),
-			Labels: labels,
-		}}, nil
+		return []*monitoringpb.CreateTimeSeriesRequest{
+			s.buildTimeSeriesRequest(
+				"todo", counterEvent.GetName(), float64(counterEvent.GetTotal()), eventTime, labels,
+			),
+		}, nil
 	default:
 		return nil, fmt.Errorf("unknown event type: %v", envelope.EventType)
 	}
