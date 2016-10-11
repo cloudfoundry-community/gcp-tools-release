@@ -108,7 +108,7 @@ networks:
     subnets:
     - range: 192.168.0.0/16
       reserved:
-      - 192.168.0.0-192.168.0.255
+      - 192.168.0.15-192.168.0.255
       gateway: 192.168.0.1
       cloud_properties:
         zone: ${google_zone}
