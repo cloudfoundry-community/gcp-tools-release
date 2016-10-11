@@ -55,6 +55,7 @@ jobs:
             cf_service_account: {{cf_service_account}}
             nozzle_user: {{nozzle_user}}
             nozzle_password: {{nozzle_password}}
+            vip_ip: {{vip_ip}}
 
 resources:
   - name: gcp-tools-release-in
