@@ -4,6 +4,8 @@ RUN_DIR=/var/vcap/sys/run/stackdriver-nozzle
 LOG_DIR=/var/vcap/sys/log/stackdriver-nozzle
 PIDFILE=$RUN_DIR/stackdriver-nozzle.pid
 
+source /var/vcap/packages/common/utils.sh
+
 case $1 in
 
   start)
