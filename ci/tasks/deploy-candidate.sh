@@ -44,8 +44,7 @@ director_uuid: ${director_uuid}
 
 releases:
 - name: bosh-gcp-tools
-#  version: latest
-  version: 0.0.69
+  version: latest
 
 jobs:
 - name: stackdriver-nozzle
