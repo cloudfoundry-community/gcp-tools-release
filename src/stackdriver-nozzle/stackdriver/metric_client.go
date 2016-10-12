@@ -10,6 +10,7 @@ import (
 
 type MetricClient interface {
 	Post(*monitoringpb.CreateTimeSeriesRequest) error
+	CreateMetricDescriptor(request *monitoringpb.CreateMetricDescriptorRequest) error
 }
 
 func NewMetricClient() (MetricClient, error) {
@@ -32,4 +33,9 @@ type metricClient struct {
 
 func (m *metricClient) Post(request *monitoringpb.CreateTimeSeriesRequest) error {
 	return m.sdMetricClient.CreateTimeSeries(m.ctx, request)
+}
+
+func (m *metricClient) CreateMetricDescriptor(request *monitoringpb.CreateMetricDescriptorRequest) error {
+	_, err := m.sdMetricClient.CreateMetricDescriptor(m.ctx, request)
+	return err
 }
