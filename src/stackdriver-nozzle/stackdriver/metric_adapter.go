@@ -1,6 +1,7 @@
 package stackdriver
 
 import (
+	"fmt"
 	"path"
 	"time"
 
@@ -23,17 +24,23 @@ type MetricAdapter interface {
 }
 
 type metricAdapter struct {
-	projectID string
-	client    MetricClient
+	projectID   string
+	client      MetricClient
 	descriptors map[string]struct{}
 }
 
-func NewMetricAdapter(projectID string, client MetricClient) MetricAdapter {
-	return &metricAdapter{
+func NewMetricAdapter(projectID string, client MetricClient) (MetricAdapter, error) {
+	ma := &metricAdapter{
 		projectID: projectID,
 		client:    client,
-		descriptors: map[string]struct{}{},
 	}
+
+	err := ma.fetchMetricDescriptorNames()
+	if err != nil {
+		return nil, err
+	}
+
+	return ma, nil
 }
 
 func (ma *metricAdapter) PostMetrics(metrics []Metric) error {
@@ -111,6 +118,24 @@ func (ma *metricAdapter) CreateMetricDescriptor(metric Metric) error {
 	}
 
 	return ma.client.CreateMetricDescriptor(req)
+}
+
+func (ma *metricAdapter) fetchMetricDescriptorNames() error {
+	req := &monitoringpb.ListMetricDescriptorsRequest{
+		Name:   fmt.Sprintf("projects/%s", ma.projectID),
+		Filter: "metric.type = starts_with(\"custom.googleapis.com/\")",
+	}
+
+	descriptors, err := ma.client.ListMetricDescriptors(req)
+	if err != nil {
+		return err
+	}
+
+	ma.descriptors = map[string]struct{}{}
+	for _, descriptor := range descriptors {
+		ma.descriptors[descriptor.Name] = struct{}{}
+	}
+	return nil
 }
 
 func (ma *metricAdapter) ensureMetricDescriptor(metric Metric) error {

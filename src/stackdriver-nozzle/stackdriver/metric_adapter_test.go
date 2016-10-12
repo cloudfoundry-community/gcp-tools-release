@@ -19,7 +19,7 @@ var _ = Describe("MetricAdapter", func() {
 
 	BeforeEach(func() {
 		client = &mockClient{}
-		subject = stackdriver.NewMetricAdapter("my-awesome-project", client)
+		subject, _ = stackdriver.NewMetricAdapter("my-awesome-project", client)
 	})
 
 	It("takes metrics and posts a time series", func() {
@@ -96,12 +96,12 @@ var _ = Describe("MetricAdapter", func() {
 		req := client.descriptorReqs[0]
 		Expect(req.Name).To(Equal("projects/my-awesome-project"))
 		Expect(req.MetricDescriptor).To(Equal(&metricpb.MetricDescriptor{
-			Name: "projects/my-awesome-project/metricDescriptors/custom.googleapis.com/metricWithUnit",
-			Type: "custom.googleapis.com/metricWithUnit",
-			Labels: []*labelpb.LabelDescriptor{{Key: "key", ValueType: 0, Description: ""}},
-			MetricKind: metricpb.MetricDescriptor_GAUGE,
-			ValueType: metricpb.MetricDescriptor_DOUBLE,
-			Unit: "{foobar}",
+			Name:        "projects/my-awesome-project/metricDescriptors/custom.googleapis.com/metricWithUnit",
+			Type:        "custom.googleapis.com/metricWithUnit",
+			Labels:      []*labelpb.LabelDescriptor{{Key: "key", ValueType: 0, Description: ""}},
+			MetricKind:  metricpb.MetricDescriptor_GAUGE,
+			ValueType:   metricpb.MetricDescriptor_DOUBLE,
+			Unit:        "{foobar}",
 			Description: "stackdriver-nozzle created custom metric.",
 			DisplayName: "metricWithUnit",
 		}))
@@ -110,19 +110,20 @@ var _ = Describe("MetricAdapter", func() {
 	It("only creates the same descriptor once", func() {
 		metrics := []stackdriver.Metric{
 			{
-				Name:   "metricWithUnit",
-				Labels: map[string]string{"key": "value"},
-				Unit:   "{foobar}",
+				Name: "metricWithUnit",
+				Unit: "{foobar}",
 			},
 			{
-				Name:   "metricWithUnitToo",
-				Labels: map[string]string{"key": "value"},
-				Unit:   "{barfoo}",
+				Name: "metricWithUnitToo",
+				Unit: "{barfoo}",
 			},
 			{
-				Name:   "metricWithUnit",
-				Labels: map[string]string{"key": "value"},
-				Unit:   "{foobar}",
+				Name: "metricWithUnit",
+				Unit: "{foobar}",
+			},
+			{
+				Name: "anExistingMetric",
+				Unit: "{lalala}",
 			},
 		}
 
@@ -145,4 +146,10 @@ func (mc *mockClient) Post(req *monitoringpb.CreateTimeSeriesRequest) error {
 func (mc *mockClient) CreateMetricDescriptor(request *monitoringpb.CreateMetricDescriptorRequest) error {
 	mc.descriptorReqs = append(mc.descriptorReqs, request)
 	return nil
+}
+
+func (mc *mockClient) ListMetricDescriptors(request *monitoringpb.ListMetricDescriptorsRequest) ([]*metricpb.MetricDescriptor, error) {
+	return []*metricpb.MetricDescriptor{
+		{Name: "anExistingMetric"},
+	}, nil
 }
