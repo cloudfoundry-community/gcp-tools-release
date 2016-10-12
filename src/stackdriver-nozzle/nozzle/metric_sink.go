@@ -8,18 +8,18 @@ import (
 	"github.com/cloudfoundry/sonde-go/events"
 )
 
-func NewMetricSink(labelMaker LabelMaker, metricAdapter stackdriver.MetricAdapter, unitParser UnitParser) Sink {
+func NewMetricSink(labelMaker LabelMaker, metricBuffer stackdriver.MetricsBuffer, unitParser UnitParser) Sink {
 	return &metricSink{
-		labelMaker:    labelMaker,
-		metricAdapter: metricAdapter,
-		unitParser:    unitParser,
+		labelMaker:   labelMaker,
+		metricBuffer: metricBuffer,
+		unitParser:   unitParser,
 	}
 }
 
 type metricSink struct {
-	labelMaker    LabelMaker
-	metricAdapter stackdriver.MetricAdapter
-	unitParser    UnitParser
+	labelMaker   LabelMaker
+	metricBuffer stackdriver.MetricsBuffer
+	unitParser   UnitParser
 }
 
 func (ms *metricSink) Receive(envelope *events.Envelope) error {
@@ -64,5 +64,8 @@ func (ms *metricSink) Receive(envelope *events.Envelope) error {
 		return fmt.Errorf("unknown event type: %v", envelope.EventType)
 	}
 
-	return ms.metricAdapter.PostMetrics(metrics)
+	for _, metric := range metrics {
+		ms.metricBuffer.PostMetric(&metric)
+	}
+	return nil
 }
