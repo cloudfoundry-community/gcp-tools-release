@@ -12,11 +12,10 @@ import (
 )
 
 type Metric struct {
-	Name      string
-	Value     float64
-	Labels    map[string]string
-	EventTime time.Time
-	Unit      string // TODO Should this be "1" if it's empty?
+	Name   string
+	Labels map[string]string
+	Points map[time.Time]float64
+	Unit   string // TODO Should this be "1" if it's empty?
 }
 
 type MetricAdapter interface {
@@ -53,31 +52,13 @@ func (ma *metricAdapter) PostMetrics(metrics []Metric) error {
 			return err
 		}
 
-		eventTime := metric.EventTime
-		timeStamp := timestamp.Timestamp{
-			Seconds: eventTime.Unix(),
-			Nanos:   int32(eventTime.Nanosecond()),
-		}
-
 		metricType := path.Join("custom.googleapis.com", metric.Name)
 		timeSeries := monitoringpb.TimeSeries{
 			Metric: &metricpb.Metric{
 				Type:   metricType,
 				Labels: metric.Labels,
 			},
-			Points: []*monitoringpb.Point{
-				{
-					Interval: &monitoringpb.TimeInterval{
-						EndTime:   &timeStamp,
-						StartTime: &timeStamp,
-					},
-					Value: &monitoringpb.TypedValue{
-						Value: &monitoringpb.TypedValue_DoubleValue{
-							DoubleValue: metric.Value,
-						},
-					},
-				},
-			},
+			Points: points(metric.Points),
 		}
 		timeSerieses = append(timeSerieses, &timeSeries)
 	}
@@ -150,4 +131,28 @@ func (ma *metricAdapter) ensureMetricDescriptor(metric Metric) error {
 	ma.descriptors[metric.Name] = struct{}{}
 
 	return ma.CreateMetricDescriptor(metric)
+}
+
+func points(input map[time.Time]float64) []*monitoringpb.Point {
+	output := []*monitoringpb.Point{}
+	for eventTime, value := range input {
+		timeStamp := timestamp.Timestamp{
+			Seconds: eventTime.Unix(),
+			Nanos:   int32(eventTime.Nanosecond()),
+		}
+		point := &monitoringpb.Point{
+			Interval: &monitoringpb.TimeInterval{
+				EndTime:   &timeStamp,
+				StartTime: &timeStamp,
+			},
+			Value: &monitoringpb.TypedValue{
+				Value: &monitoringpb.TypedValue_DoubleValue{
+					DoubleValue: value,
+				},
+			},
+		}
+
+		output = append(output, point)
+	}
+	return output
 }

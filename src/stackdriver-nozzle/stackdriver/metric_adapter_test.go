@@ -15,11 +15,15 @@ var _ = Describe("MetricAdapter", func() {
 	var (
 		subject stackdriver.MetricAdapter
 		client  *mockClient
+		points       func(time.Time, float64) map[time.Time]float64
 	)
 
 	BeforeEach(func() {
 		client = &mockClient{}
 		subject, _ = stackdriver.NewMetricAdapter("my-awesome-project", client)
+		points = func(eventTime time.Time, value float64) map[time.Time]float64 {
+			return map[time.Time]float64{eventTime: value}
+		}
 	})
 
 	It("takes metrics and posts a time series", func() {
@@ -28,19 +32,17 @@ var _ = Describe("MetricAdapter", func() {
 		metrics := []stackdriver.Metric{
 			{
 				Name:  "metricName",
-				Value: 123.45,
 				Labels: map[string]string{
 					"key": "name",
 				},
-				EventTime: eventTime,
+				Points : points (eventTime, 123.45),
 			},
 			{
 				Name:  "secondMetricName",
-				Value: 54.321,
 				Labels: map[string]string{
 					"secondKey": "secondName",
 				},
-				EventTime: eventTime,
+				Points : points (eventTime, 54.321),
 			},
 		}
 
