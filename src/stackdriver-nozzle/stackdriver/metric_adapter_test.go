@@ -106,6 +106,30 @@ var _ = Describe("MetricAdapter", func() {
 			DisplayName: "metricWithUnit",
 		}))
 	})
+
+	It("only creates the same descriptor once", func() {
+		metrics := []stackdriver.Metric{
+			{
+				Name:   "metricWithUnit",
+				Labels: map[string]string{"key": "value"},
+				Unit:   "{foobar}",
+			},
+			{
+				Name:   "metricWithUnitToo",
+				Labels: map[string]string{"key": "value"},
+				Unit:   "{barfoo}",
+			},
+			{
+				Name:   "metricWithUnit",
+				Labels: map[string]string{"key": "value"},
+				Unit:   "{foobar}",
+			},
+		}
+
+		subject.PostMetrics(metrics)
+
+		Expect(client.descriptorReqs).To(HaveLen(2))
+	})
 })
 
 type mockClient struct {

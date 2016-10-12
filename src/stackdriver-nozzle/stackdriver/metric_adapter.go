@@ -25,12 +25,14 @@ type MetricAdapter interface {
 type metricAdapter struct {
 	projectID string
 	client    MetricClient
+	descriptors map[string]struct{}
 }
 
 func NewMetricAdapter(projectID string, client MetricClient) MetricAdapter {
 	return &metricAdapter{
 		projectID: projectID,
 		client:    client,
+		descriptors: map[string]struct{}{},
 	}
 }
 
@@ -115,6 +117,12 @@ func (ma *metricAdapter) ensureMetricDescriptor(metric Metric) error {
 	if metric.Unit == "" {
 		return nil
 	}
+
+	if _, ok := ma.descriptors[metric.Name]; ok {
+		return nil
+	}
+
+	ma.descriptors[metric.Name] = struct{}{}
 
 	return ma.CreateMetricDescriptor(metric)
 }
