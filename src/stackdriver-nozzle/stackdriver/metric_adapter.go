@@ -12,10 +12,11 @@ import (
 )
 
 type Metric struct {
-	Name   string
-	Labels map[string]string
-	Points map[time.Time]float64
-	Unit   string // TODO Should this be "1" if it's empty?
+	Name      string
+	Value     float64
+	Labels    map[string]string
+	EventTime time.Time
+	Unit      string // TODO Should this be "1" if it's empty?
 }
 
 type MetricAdapter interface {
@@ -58,7 +59,7 @@ func (ma *metricAdapter) PostMetrics(metrics []Metric) error {
 				Type:   metricType,
 				Labels: metric.Labels,
 			},
-			Points: points(metric.Points),
+			Points: points(metric.Value, metric.EventTime),
 		}
 		timeSerieses = append(timeSerieses, &timeSeries)
 	}
@@ -138,26 +139,21 @@ func (ma *metricAdapter) ensureMetricDescriptor(metric Metric) error {
 	return ma.CreateMetricDescriptor(metric)
 }
 
-func points(input map[time.Time]float64) []*monitoringpb.Point {
-	output := []*monitoringpb.Point{}
-	for eventTime, value := range input {
-		timeStamp := timestamp.Timestamp{
-			Seconds: eventTime.Unix(),
-			Nanos:   int32(eventTime.Nanosecond()),
-		}
-		point := &monitoringpb.Point{
-			Interval: &monitoringpb.TimeInterval{
-				EndTime:   &timeStamp,
-				StartTime: &timeStamp,
-			},
-			Value: &monitoringpb.TypedValue{
-				Value: &monitoringpb.TypedValue_DoubleValue{
-					DoubleValue: value,
-				},
-			},
-		}
-
-		output = append(output, point)
+func points(value float64, eventTime time.Time) []*monitoringpb.Point {
+	timeStamp := timestamp.Timestamp{
+		Seconds: eventTime.Unix(),
+		Nanos:   int32(eventTime.Nanosecond()),
 	}
-	return output
+	point := &monitoringpb.Point{
+		Interval: &monitoringpb.TimeInterval{
+			EndTime:   &timeStamp,
+			StartTime: &timeStamp,
+		},
+		Value: &monitoringpb.TypedValue{
+			Value: &monitoringpb.TypedValue_DoubleValue{
+				DoubleValue: value,
+			},
+		},
+	}
+	return []*monitoringpb.Point{point}
 }

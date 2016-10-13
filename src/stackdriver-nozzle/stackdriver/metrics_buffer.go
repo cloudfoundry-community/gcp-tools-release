@@ -44,14 +44,11 @@ func (mb *metricsBuffer) addMetric(newMetric *Metric) {
 		mb.metrics = append(mb.metrics, *newMetric)
 	} else {
 		mb.postMetrics([]Metric{*newMetric})
-		//for eventTime, value := range newMetric.Points {
-		//	existingMetric.Points[eventTime] = value
-		//}
 	}
 }
 
 func (mb *metricsBuffer) postMetrics(metrics []Metric) {
-	err := mb.adapter.PostMetrics(mb.metrics)
+	err := mb.adapter.PostMetrics(metrics)
 	if err != nil {
 		go func() { mb.errs <- err }()
 	}

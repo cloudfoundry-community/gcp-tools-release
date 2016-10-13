@@ -7,7 +7,6 @@ import (
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"time"
 )
 
 var _ = Describe("MetricsBuffer", func() {
@@ -71,40 +70,16 @@ var _ = Describe("MetricsBuffer", func() {
 		Expect(err).To(Equal(expectedErr))
 	})
 
-	It("combines metrics with the same name and labels", func() {
-		name := "neatoMetric"
-		labels := map[string]string{"foo":"bar"}
-		eventTime1 := time.Now()
-		metric := &stackdriver.Metric{
-			Name: name,
-			Labels: labels,
-			Points: map[time.Time]float64{eventTime1: 123.456},
-		}
-		subject.PostMetric(metric)
-
-		eventTime2 := time.Now()
-		metric = &stackdriver.Metric{
-			Name: name,
-			Labels: labels,
-			Points: map[time.Time]float64{eventTime2: 456.789},
-		}
-		subject.PostMetric(metric)
-
-		subject.PostMetric(&stackdriver.Metric{Name: "a"})
-		subject.PostMetric(&stackdriver.Metric{Name: "b"})
+	It("posts individual metric when it is a duplicate", func() {
+		subject.PostMetric(&stackdriver.Metric{Name: "a", Value: 1})
+		subject.PostMetric(&stackdriver.Metric{Name: "a", Value: 2})
+		Expect(metricAdapter.PostedMetrics).To(HaveLen(1))
+		Expect(metricAdapter.PostedMetrics[0].Value).To(Equal(float64(2)))
+		subject.PostMetric(&stackdriver.Metric{Name: "b", Value: 3})
 		subject.PostMetric(&stackdriver.Metric{Name: "c"})
-
-		Expect(metricAdapter.PostedMetrics).To(BeEmpty())
-
 		subject.PostMetric(&stackdriver.Metric{Name: "d"})
-		Expect(metricAdapter.PostedMetrics).To(HaveLen(5))
-		Expect(metricAdapter.PostedMetrics[0]).To(Equal(stackdriver.Metric{
-			Name: name,
-			Labels: labels,
-			Points: map[time.Time]float64{
-				eventTime1: 123.456,
-				eventTime2: 456.789,
-			},
-		}))
+		subject.PostMetric(&stackdriver.Metric{Name: "e"})
+		Expect(metricAdapter.PostedMetrics).To(HaveLen(6))
+		Expect(metricAdapter.PostedMetrics[1].Value).To(Equal(float64(1)))
 	})
 })
