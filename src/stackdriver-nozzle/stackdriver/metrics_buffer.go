@@ -43,6 +43,12 @@ func (mb *metricsBuffer) addMetric(newMetric *Metric) {
 	if existingMetric == nil {
 		mb.metrics = append(mb.metrics, *newMetric)
 	} else {
+		/*
+			Stack driver API does not let us have multiple time series with the same name/label
+			in a single request. Furthermore, within each time series, we cannot have multiple points.
+			Due to this, if we encounter a metric with same name/labels, we will send it individually
+			and not buffer it (╯°□°）╯︵ ┻━┻
+		*/
 		mb.postMetrics([]Metric{*newMetric})
 	}
 }
