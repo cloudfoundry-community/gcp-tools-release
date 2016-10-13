@@ -25,20 +25,16 @@ func (mb *metricsBuffer) PostMetric(metric *Metric) {
 		return
 	}
 
-	err := mb.adapter.PostMetrics(mb.metrics)
-	if err != nil {
-		go func() { mb.errs <- err }()
-	}
-
+	mb.postMetrics(mb.metrics)
 	mb.metrics = []Metric{}
 }
 
 func (mb *metricsBuffer) addMetric(newMetric *Metric) {
 	var existingMetric *Metric
 
-	for _,metric := range mb.metrics {
+	for _, metric := range mb.metrics {
 		if metric.Name == newMetric.Name &&
-		 reflect.DeepEqual(metric.Labels, newMetric.Labels) {
+			reflect.DeepEqual(metric.Labels, newMetric.Labels) {
 			existingMetric = &metric
 			break
 		}
@@ -47,13 +43,17 @@ func (mb *metricsBuffer) addMetric(newMetric *Metric) {
 	if existingMetric == nil {
 		mb.metrics = append(mb.metrics, *newMetric)
 	} else {
-		err := mb.adapter.PostMetrics([]Metric{*newMetric})
-		if err != nil {
-			go func() { mb.errs <- err }()
-		}
-
+		mb.postMetrics([]Metric{*newMetric})
 		//for eventTime, value := range newMetric.Points {
 		//	existingMetric.Points[eventTime] = value
 		//}
 	}
+}
+
+func (mb *metricsBuffer) postMetrics(metrics []Metric) {
+	err := mb.adapter.PostMetrics(mb.metrics)
+	if err != nil {
+		go func() { mb.errs <- err }()
+	}
+
 }
