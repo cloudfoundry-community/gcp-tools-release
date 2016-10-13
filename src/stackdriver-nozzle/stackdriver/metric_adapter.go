@@ -68,7 +68,12 @@ func (ma *metricAdapter) PostMetrics(metrics []Metric) error {
 		TimeSeries: timeSerieses,
 	}
 
-	return ma.client.Post(request)
+	err := ma.client.Post(request)
+	//if (err != nil) {
+	//	fmt.Printf("%v", timeSerieses)
+	//}
+	//TODO: join envelope with the error
+	return err
 }
 
 func (ma *metricAdapter) CreateMetricDescriptor(metric Metric) error {
