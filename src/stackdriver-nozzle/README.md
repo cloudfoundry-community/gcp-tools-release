@@ -1,5 +1,11 @@
 ## stackdriver-nozzle
 
+A service that connects to the [Cloud Foundry firehose][cf-firehose] and sends
+logs and metrics to [Google Stackdriver][goog-sd].
+
+[cf-firehose]: https://docs.cloudfoundry.org/loggregator/architecture.html
+[goog-sd]: https://cloud.google.com/stackdriver/
+
 ### Installation
 
 ```sh
@@ -17,8 +23,12 @@ go get github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzl
   valid events are `LogMessage`, `ValueMetric`, `CounterEvent`, `Error`,
   `ContainerMetric`, `HttpStart`, `HttpStop`, and `HttpStartStop`
 - `FIREHOSE_USERNAME` - CF username; defaults to `admin`
+  - requires
+    `scim.write,scim.read,openid,cloud_controller.admin_read_only,doppler.firehose`
+    permissions
 - `FIREHOSE_PASSWORD` - CF password; defaults to `password`
-- `FIREHOSE_SKIP_SSL` - whether to ignore SSL (please don't); defaults to `false`
+- `FIREHOSE_SKIP_SSL` - whether to ignore SSL (please don't); defaults to
+  `false`
 
 #### Stackdriver
 
