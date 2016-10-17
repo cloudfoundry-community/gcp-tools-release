@@ -141,4 +141,4 @@ We use the [GitHub issue tracker](https://github.com.evandbrown/gcp-tools-releas
 
 ## Copyright
 
-Copyright (c) 2016 Ferran Rodenas. See [LICENSE](https://github.com.evandbrown/gcp-tools-release/blob/master/LICENSE) for details.
+Copyright 2015 Google Inc. All rights reserved. See [LICENSE](https://github.com/evandbrown/gcp-tools-release/blob/master/LICENSE) for details.
