@@ -125,7 +125,7 @@ func (a *app) newMetricSink() nozzle.Sink {
 
 	metricAdapter, err := stackdriver.NewMetricAdapter(a.c.ProjectID, metricClient)
 	if err != nil {
-		a.logger.Fatal("metricAdapter", err)
+		a.logger.Error("metricAdapter", err)
 	}
 
 	metricBuffer, errs := stackdriver.NewMetricsBuffer(a.c.BatchCount, metricAdapter)
