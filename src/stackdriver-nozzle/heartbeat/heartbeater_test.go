@@ -11,7 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Heartbeat", func() {
+var _ = Describe("Heartbeater", func() {
 	var (
 		subject heartbeat.Heartbeater
 		logger  *mocks.MockLogger
@@ -22,7 +22,7 @@ var _ = Describe("Heartbeat", func() {
 		logger = &mocks.MockLogger{}
 		trigger = make(chan time.Time)
 
-		subject = heartbeat.NewHeartbeat(logger, trigger)
+		subject = heartbeat.NewHeartbeater(logger, trigger)
 		subject.Start()
 	})
 
@@ -33,7 +33,7 @@ var _ = Describe("Heartbeat", func() {
 			return logger.LastLog()
 		}).Should(Equal(mocks.Log{
 			Level:  lager.INFO,
-			Action: "heartbeat",
+			Action: "heartbeater",
 			Datas: []lager.Data{
 				{"counters": map[string]uint{}},
 			},
@@ -51,14 +51,14 @@ var _ = Describe("Heartbeat", func() {
 			return logger.LastLog()
 		}).Should(Equal(mocks.Log{
 			Level:  lager.INFO,
-			Action: "heartbeat",
+			Action: "heartbeater",
 			Datas: []lager.Data{
 				{"counters": map[string]uint{"foo": 10}},
 			},
 		}))
 	})
 
-	It("should reset the heartbeat on triggers", func() {
+	It("should reset the heartbeater on triggers", func() {
 		for i := 0; i < 10; i++ {
 			subject.Increment("foo")
 		}
@@ -75,7 +75,7 @@ var _ = Describe("Heartbeat", func() {
 			return logger.LastLog()
 		}).Should(Equal(mocks.Log{
 			Level:  lager.INFO,
-			Action: "heartbeat",
+			Action: "heartbeater",
 			Datas: []lager.Data{
 				{"counters": map[string]uint{"foo": 5}},
 			},
@@ -92,7 +92,7 @@ var _ = Describe("Heartbeat", func() {
 			return logger.LastLog()
 		}).Should(Equal(mocks.Log{
 			Level:  lager.INFO,
-			Action: "heartbeat",
+			Action: "heartbeater",
 			Datas: []lager.Data{
 				{"counters": map[string]uint{"foo": 5}},
 			},
@@ -101,8 +101,8 @@ var _ = Describe("Heartbeat", func() {
 		subject.Increment("foo")
 		Expect(logger.LastLog()).To(Equal(mocks.Log{
 			Level:  lager.ERROR,
-			Action: "heartbeat",
-			Err:    errors.New("attempted to increment counter without starting heartbeat"),
+			Action: "heartbeater",
+			Err:    errors.New("attempted to increment counter without starting heartbeater"),
 		}))
 	})
 

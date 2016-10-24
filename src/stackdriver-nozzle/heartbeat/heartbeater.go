@@ -13,7 +13,7 @@ type Heartbeater interface {
 	Stop()
 }
 
-type heartbeat struct {
+type heartbeater struct {
 	logger  lager.Logger
 	trigger <-chan time.Time
 	counter chan string
@@ -21,10 +21,10 @@ type heartbeat struct {
 	started bool
 }
 
-func NewHeartbeat(logger lager.Logger, trigger <-chan time.Time) Heartbeater {
+func NewHeartbeater(logger lager.Logger, trigger <-chan time.Time) Heartbeater {
 	counter := make(chan string)
 	done := make(chan struct{})
-	return &heartbeat{
+	return &heartbeater{
 		logger:  logger,
 		trigger: trigger,
 		counter: counter,
@@ -33,7 +33,7 @@ func NewHeartbeat(logger lager.Logger, trigger <-chan time.Time) Heartbeater {
 	}
 }
 
-func (h *heartbeat) Start() {
+func (h *heartbeater) Start() {
 	h.started = true
 	go func() {
 		counters := map[string]uint{}
@@ -41,14 +41,14 @@ func (h *heartbeat) Start() {
 			select {
 			case <-h.trigger:
 				h.logger.Info(
-					"heartbeat", lager.Data{"counters": counters},
+					"heartbeater", lager.Data{"counters": counters},
 				)
 				counters = map[string]uint{}
 			case name := <-h.counter:
 				counters[name] += 1
 			case <-h.done:
 				h.logger.Info(
-					"heartbeat", lager.Data{"counters": counters},
+					"heartbeater", lager.Data{"counters": counters},
 				)
 				return
 			}
@@ -56,18 +56,18 @@ func (h *heartbeat) Start() {
 	}()
 }
 
-func (h *heartbeat) Increment(name string) {
+func (h *heartbeater) Increment(name string) {
 	if h.started {
 		h.counter <- name
 	} else {
 		h.logger.Error(
-			"heartbeat",
-			errors.New("attempted to increment counter without starting heartbeat"),
+			"heartbeater",
+			errors.New("attempted to increment counter without starting heartbeater"),
 		)
 	}
 }
 
-func (h *heartbeat) Stop() {
+func (h *heartbeater) Stop() {
 	h.done <- struct{}{}
 	h.started = false
 }
