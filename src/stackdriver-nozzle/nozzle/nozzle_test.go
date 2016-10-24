@@ -25,7 +25,7 @@ var _ = Describe("Nozzle", func() {
 		firehose = mocks.NewFirehoseClient()
 		logSink = &mocks.Sink{}
 		metricSink = &mocks.Sink{}
-		heartbeater = &mocks.Heartbeater{}
+		heartbeater = mocks.NewHeartbeater()
 
 		subject = nozzle.Nozzle{
 			LogSink:     logSink,
@@ -46,7 +46,9 @@ var _ = Describe("Nozzle", func() {
 			firehose.Messages <- &event
 		}
 
-		Eventually(heartbeater.GetCounter).Should(Equal(len(events.Envelope_EventType_value)))
+		Eventually(func() int {
+			return heartbeater.Counters["nozzle.events"]
+		}).Should(Equal(len(events.Envelope_EventType_value)))
 	})
 
 	It("stops the heartbeater", func() {

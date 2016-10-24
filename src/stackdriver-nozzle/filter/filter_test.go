@@ -16,11 +16,11 @@ var _ = Describe("Filter", func() {
 
 	BeforeEach(func() {
 		fhClient = mocks.NewFirehoseClient()
+		heartbeater = mocks.NewHeartbeater()
 	})
 
 	It("can accept an empty filter and blocks all events", func() {
 		emptyFilter := []string{}
-		heartbeater = &mocks.Heartbeater{}
 		f, err := filter.New(fhClient, emptyFilter, heartbeater)
 		Expect(err).To(BeNil())
 		Expect(f).NotTo(BeNil())
@@ -103,13 +103,22 @@ var _ = Describe("Filter", func() {
 	})
 
 	It("increments the heartbeater", func() {
+		multiFilter := []string{"Error", "LogMessage"}
+		f, _ := filter.New(fhClient, multiFilter, heartbeater)
+		messages, _ := f.Connect()
+
+		go func() {
+			for range messages {
+			}
+		}()
+
 		fhClient.SendEvents(
 			events.Envelope_HttpStart,
 			events.Envelope_HttpStop,
 			events.Envelope_HttpStartStop,
 		)
 
-		Expect(heartbeater.GetCounter()).To(Equal(3))
+		Expect(heartbeater.Counters["filter.events"]).To(Equal(3))
 
 		fhClient.SendEvents(
 			events.Envelope_LogMessage,
@@ -118,6 +127,6 @@ var _ = Describe("Filter", func() {
 			events.Envelope_ContainerMetric,
 		)
 
-		Expect(heartbeater.GetCounter()).To(Equal(7))
+		Expect(heartbeater.Counters["filter.events"]).To(Equal(7))
 	})
 })
