@@ -110,6 +110,7 @@ func (a *app) newLogSink() nozzle.Sink {
 		a.c.ProjectID,
 		a.c.BatchCount,
 		time.Duration(a.c.BatchDuration)*time.Second,
+		a.heartbeater,
 	)
 	go func() {
 		err := <-logErrs
