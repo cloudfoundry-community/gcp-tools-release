@@ -1,12 +1,15 @@
 package mocks
 
+import "sync"
+
 func NewHeartbeater() *Heartbeater {
-	return &Heartbeater{false, map[string]int{}}
+	return &Heartbeater{Counters: map[string]int{}}
 }
 
 type Heartbeater struct {
 	Started  bool
 	Counters map[string]int
+	mutex    sync.Mutex
 }
 
 func (h *Heartbeater) Start() {
@@ -14,7 +17,9 @@ func (h *Heartbeater) Start() {
 }
 
 func (h *Heartbeater) Increment(name string) {
+	h.mutex.Lock()
 	h.Counters[name] += 1
+	h.mutex.Unlock()
 }
 
 func (h *Heartbeater) Stop() {

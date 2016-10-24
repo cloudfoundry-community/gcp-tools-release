@@ -125,7 +125,7 @@ func (a *app) newMetricSink() nozzle.Sink {
 		a.logger.Fatal("metricClient", err)
 	}
 
-	metricAdapter, err := stackdriver.NewMetricAdapter(a.c.ProjectID, metricClient)
+	metricAdapter, err := stackdriver.NewMetricAdapter(a.c.ProjectID, metricClient, a.heartbeater)
 	if err != nil {
 		a.logger.Error("metricAdapter", err)
 	}
