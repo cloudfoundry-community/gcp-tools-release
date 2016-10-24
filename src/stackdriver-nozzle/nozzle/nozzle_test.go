@@ -150,7 +150,7 @@ func (mh *mockHeartbeater) Start() {
 	mh.started = true
 }
 
-func (mh *mockHeartbeater) AddCounter() {
+func (mh *mockHeartbeater) Increment(_ string) {
 	mh.counter += 1
 }
 
