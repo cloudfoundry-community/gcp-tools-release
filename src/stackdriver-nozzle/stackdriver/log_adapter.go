@@ -18,8 +18,9 @@ type LogAdapter interface {
 }
 
 type Log struct {
-	Payload interface{}
-	Labels  map[string]string
+	Payload  interface{}
+	Labels   map[string]string
+	Severity logging.Severity
 }
 
 func NewLogAdapter(projectID string, batchCount int, batchDuration time.Duration) (LogAdapter, <-chan error) {
@@ -50,8 +51,9 @@ type logClient struct {
 
 func (s *logClient) PostLog(log *Log) {
 	entry := logging.Entry{
-		Payload: log.Payload,
-		Labels:  log.Labels,
+		Payload:  log.Payload,
+		Labels:   log.Labels,
+		Severity: log.Severity,
 	}
 	s.sdLogger.Log(entry)
 }

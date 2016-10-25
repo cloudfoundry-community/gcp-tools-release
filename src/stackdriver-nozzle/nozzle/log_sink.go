@@ -1,6 +1,7 @@
 package nozzle
 
 import (
+	"cloud.google.com/go/logging"
 	"encoding/json"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
 	"github.com/cloudfoundry/sonde-go/events"
@@ -16,9 +17,11 @@ type logSink struct {
 }
 
 func (lh *logSink) Receive(envelope *events.Envelope) error {
+	payload, severity := lh.parseEnvelope(envelope)
 	log := &stackdriver.Log{
-		Payload: lh.buildPayload(envelope),
-		Labels:  lh.labelMaker.Build(envelope),
+		Payload:  payload,
+		Labels:   lh.labelMaker.Build(envelope),
+		Severity: severity,
 	}
 
 	lh.logAdapter.PostLog(log)
@@ -33,9 +36,11 @@ func structToMap(obj interface{}) map[string]interface{} {
 	return unmarshaled_map
 }
 
-func (ls *logSink) buildPayload(envelope *events.Envelope) interface{} {
+func (ls *logSink) parseEnvelope(envelope *events.Envelope) (interface{}, logging.Severity) {
 	envelopeMap := structToMap(envelope)
 	envelopeMap["eventType"] = envelope.GetEventType().String()
+
+	severity := logging.Default
 
 	// The json marshaling causes a loss in precision
 	if envelope.GetTimestamp() != 0 {
@@ -51,6 +56,7 @@ func (ls *logSink) buildPayload(envelope *events.Envelope) interface{} {
 			// fields we pass to Stackdriver are camelCased. We arbitrarily chose
 			// to remain consistent with the protobuf.
 			logMessageMap["message_type"] = logMessage.GetMessageType().String()
+			severity = parseSeverity(logMessage.GetMessageType())
 			logMessageMap["message"] = string(logMessage.GetMessage())
 			envelopeMap["logMessage"] = logMessageMap
 		}
@@ -64,5 +70,13 @@ func (ls *logSink) buildPayload(envelope *events.Envelope) interface{} {
 		}
 	}
 
-	return envelopeMap
+	return envelopeMap, severity
+}
+
+func parseSeverity(messageType events.LogMessage_MessageType) logging.Severity {
+	if messageType == events.LogMessage_ERR {
+		return logging.Error
+	}
+
+	return logging.Default
 }

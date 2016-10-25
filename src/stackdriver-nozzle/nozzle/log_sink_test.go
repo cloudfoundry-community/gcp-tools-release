@@ -3,6 +3,8 @@ package nozzle_test
 import (
 	"time"
 
+	"cloud.google.com/go/logging"
+
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/mocks"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/nozzle"
 	"github.com/cloudfoundry/sonde-go/events"
@@ -127,6 +129,26 @@ var _ = Describe("LogSink", func() {
 					"message":      "19400: Success: Go",
 				},
 			}))
+			Expect(postedLog.Severity).To(Equal(logging.Default))
+		})
+
+		It("has resolved severity for a LogMessage from an Error", func() {
+			eventType := events.Envelope_LogMessage
+			messageType := events.LogMessage_ERR
+
+			event := events.LogMessage{
+				MessageType: &messageType,
+			}
+			envelope := &events.Envelope{
+				EventType:  &eventType,
+				LogMessage: &event,
+			}
+
+			subject.Receive(envelope)
+
+			postedLog := logAdapter.PostedLogs[0]
+
+			Expect(postedLog.Severity).To(Equal(logging.Error))
 		})
 	})
 })
