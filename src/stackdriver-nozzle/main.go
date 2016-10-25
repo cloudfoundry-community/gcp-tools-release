@@ -2,9 +2,11 @@ package main
 
 import (
 	"os"
+	"runtime"
 	"strings"
 	"time"
 
+	"cloud.google.com/go/logging"
 	"github.com/cloudfoundry-community/firehose-to-syslog/caching"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/config"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/filter"
@@ -12,7 +14,8 @@ import (
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/heartbeat"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/nozzle"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
-	"github.com/cloudfoundry-community/go-cfclient"
+	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/version"
+	cfclient "github.com/cloudfoundry-community/go-cfclient"
 	"github.com/cloudfoundry/lager"
 )
 
@@ -24,6 +27,15 @@ func main() {
 
 	errs, fhErrs := consumer.Start(producer)
 	defer consumer.Stop()
+
+	// Catch any panics and log them directly to stackdriver
+	defer func() {
+		if e := recover(); e != nil {
+			stack := make([]byte, 1<<16)
+			stackSize := runtime.Stack(stack, true)
+			reportFatalError(string(stack[:stackSize]), a.logAdapter)
+		}
+	}()
 
 	go func() {
 		for err := range errs {
@@ -78,11 +90,12 @@ func newApp() *app {
 }
 
 type app struct {
-	logger      lager.Logger
-	c           *config.Config
-	cfConfig    *cfclient.Config
-	cfClient    *cfclient.Client
-	labelMaker  nozzle.LabelMaker
+	logger     lager.Logger
+	c          *config.Config
+	cfConfig   *cfclient.Config
+	cfClient   *cfclient.Client
+	labelMaker nozzle.LabelMaker
+	logAdapter stackdriver.LogAdapter
 	heartbeater heartbeat.Heartbeater
 }
 
@@ -117,6 +130,8 @@ func (a *app) newLogSink() nozzle.Sink {
 		a.logger.Error("logAdapter", err)
 	}()
 
+	a.logAdapter = logAdapter
+
 	return nozzle.NewLogSink(a.labelMaker, logAdapter)
 }
 
@@ -139,4 +154,21 @@ func (a *app) newMetricSink() nozzle.Sink {
 	}()
 
 	return nozzle.NewMetricSink(a.labelMaker, metricBuffer, nozzle.NewUnitParser())
+}
+
+func reportFatalError(stackTrace string, sink stackdriver.LogAdapter) {
+	payload := map[string]interface{}{
+		"serviceContext": map[string]interface{}{
+			"service": version.Name,
+		},
+		"message": stackTrace,
+	}
+
+	log := &stackdriver.Log{
+		Payload:  payload,
+		Labels:   map[string]string{},
+		Severity: logging.Error,
+	}
+
+	sink.PostLog(log)
 }
