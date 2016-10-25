@@ -77,6 +77,9 @@ func (ma *metricAdapter) PostMetrics(metrics []Metric) error {
 
 	ma.heartbeater.Increment("metrics.requests")
 	err := ma.client.Post(request)
+	if err != nil {
+		ma.heartbeater.Increment("metrics.errors")
+	}
 	err = errors.Wrapf(err, "Request: %+v", request)
 	return err
 }
