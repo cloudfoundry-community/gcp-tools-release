@@ -1,8 +1,9 @@
 package nozzle
 
 import (
-	"cloud.google.com/go/logging"
 	"encoding/json"
+
+	"cloud.google.com/go/logging"
 	"github.com/cloudfoundry-community/gcp-tools-release/src/stackdriver-nozzle/stackdriver"
 	"github.com/cloudfoundry/sonde-go/events"
 )
@@ -59,6 +60,8 @@ func (ls *logSink) parseEnvelope(envelope *events.Envelope) (interface{}, loggin
 			severity = parseSeverity(logMessage.GetMessageType())
 			logMessageMap["message"] = string(logMessage.GetMessage())
 			envelopeMap["logMessage"] = logMessageMap
+			// Duplicate the message payload where stackdriver expects it
+			envelopeMap["message"] = string(logMessage.GetMessage())
 		}
 	case events.Envelope_HttpStartStop:
 		httpStartStop := envelope.GetHttpStartStop()

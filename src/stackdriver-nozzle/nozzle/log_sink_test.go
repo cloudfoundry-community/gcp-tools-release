@@ -128,6 +128,7 @@ var _ = Describe("LogSink", func() {
 					"message_type": "OUT",
 					"message":      "19400: Success: Go",
 				},
+				"message": "19400: Success: Go",
 			}))
 			Expect(postedLog.Severity).To(Equal(logging.Default))
 		})
