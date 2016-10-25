@@ -60,4 +60,8 @@ func (s *logAdapter) PostLog(log *Log) {
 		Severity: log.Severity,
 	}
 	s.sdLogger.Log(entry)
+
+	if log.Severity == logging.Emergency || log.Severity == logging.Error {
+		s.sdLogger.Flush()
+	}
 }
