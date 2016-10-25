@@ -24,9 +24,10 @@ jobs:
     release: gcp-tools
   - name: google-fluentd
     release: gcp-tools
-  - name: stackdriver-agent
-    release: gcp-tools
   properties:
+    credentials:
+      application_default_credentials: |
+        {json here}
     firehose:
       endpoint: <%= firehose_endpoint %>
       username: <%= firehose_username %>
