@@ -151,5 +151,30 @@ var _ = Describe("LogSink", func() {
 
 			Expect(postedLog.Severity).To(Equal(logging.Error))
 		})
+
+		It("has severity and message for Error event types", func() {
+			eventType := events.Envelope_Error
+			source := "cf-source"
+			code := int32(-1)
+			message := "some error message"
+			event := events.Error{
+				Source:  &source,
+				Code:    &code,
+				Message: &message,
+			}
+			envelope := &events.Envelope{
+				EventType: &eventType,
+				Error:     &event,
+			}
+
+			subject.Receive(envelope)
+
+			postedLog := logAdapter.PostedLogs[0]
+
+			payload, ok := postedLog.Payload.(map[string]interface{})
+			Expect(ok).To(BeTrue())
+			Expect(payload["message"]).To(Equal("some error message"))
+			Expect(postedLog.Severity).To(Equal(logging.Error))
+		})
 	})
 })

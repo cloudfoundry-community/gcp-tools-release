@@ -63,6 +63,10 @@ func (ls *logSink) parseEnvelope(envelope *events.Envelope) (interface{}, loggin
 			// Duplicate the message payload where stackdriver expects it
 			envelopeMap["message"] = string(logMessage.GetMessage())
 		}
+	case events.Envelope_Error:
+		errorMessage := envelope.GetError().GetMessage()
+		envelopeMap["message"] = errorMessage
+		severity = logging.Error
 	case events.Envelope_HttpStartStop:
 		httpStartStop := envelope.GetHttpStartStop()
 		httpStartStopMap := structToMap(httpStartStop)
