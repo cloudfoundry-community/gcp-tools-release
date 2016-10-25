@@ -16,7 +16,7 @@ var _ = Describe("Filter", func() {
 
 	BeforeEach(func() {
 		fhClient = mocks.NewFirehoseClient()
-		heartbeater = mocks.NewHeartbeater()
+		heartbeater = mocks.New()
 	})
 
 	It("can accept an empty filter and blocks all events", func() {

@@ -25,7 +25,7 @@ var _ = Describe("Nozzle", func() {
 		firehose = mocks.NewFirehoseClient()
 		logSink = &mocks.Sink{}
 		metricSink = &mocks.Sink{}
-		heartbeater = mocks.NewHeartbeater()
+		heartbeater = mocks.New()
 
 		subject = nozzle.Nozzle{
 			LogSink:     logSink,

@@ -1,3 +1,5 @@
+#go run main.go | ruby scripts/metrics_stats.rb
+
 require "json"
 
 count = 0

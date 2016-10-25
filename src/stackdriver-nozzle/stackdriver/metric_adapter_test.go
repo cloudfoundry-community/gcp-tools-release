@@ -22,7 +22,7 @@ var _ = Describe("MetricAdapter", func() {
 
 	BeforeEach(func() {
 		client = &mockClient{}
-		heartbeater = mocks.NewHeartbeater()
+		heartbeater = mocks.New()
 		subject, _ = stackdriver.NewMetricAdapter("my-awesome-project", client, heartbeater)
 	})
 

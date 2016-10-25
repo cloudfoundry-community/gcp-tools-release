@@ -2,7 +2,7 @@ package mocks
 
 import "sync"
 
-func NewHeartbeater() *Heartbeater {
+func New() *Heartbeater {
 	return &Heartbeater{Counters: map[string]int{}}
 }
 
