@@ -7,7 +7,7 @@ semver=`cat version-semver/number`
 
 image_name=${release_name}-${semver}.tgz
 image_path="https://storage.googleapis.com/bosh-gcp/beta/stackdriver-tools/${image_name}"
-output_path=candidate/latest-nozzle-tile.pivotal
+output_path=candidate/stackdriver-nozzle-${semver}.pivotal
 
 pushd "stackdriver-tools"
 	echo "Creating tile.yml"
