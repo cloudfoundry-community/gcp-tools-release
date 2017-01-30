@@ -11,7 +11,5 @@ semver=`cat version-semver/number`
 image_name=${cpi_release_name}-${semver}.tgz
 image_path="https://storage.googleapis.com/bosh-gcp/beta/stackdriver-tools/${image_name}"
 
-echo "Will build tile based off of: ${image_pathj"
-
-tile_file="candidate/latest-stackdriver-nozzle.pivotal"
-echo "${image_path}" > ${tile_file}
+echo "${image_path}"
+echo "${image_path}" > canidate/latest-nozzle-tile.pivotal
