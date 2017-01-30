@@ -10,6 +10,8 @@ image_path="https://storage.googleapis.com/bosh-gcp/beta/stackdriver-tools/${ima
 output_path=candidate/latest-nozzle-tile.pivotal
 
 pushd "stackdriver-tools"
+	echo "Creating tile.yml"
+	RELEASE_PATH=${image_path} erb tile.yml.erb > tile.yml
 	echo "building tile"
 	tile build ${semver}
 popd
