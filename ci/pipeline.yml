@@ -108,12 +108,11 @@ jobs:
       - aggregate:
         - {trigger: true,  passed: [build-candidate],  get: stackdriver-tools,                resource: stackdriver-tools-in}
         - {trigger: false,                             get: version-semver,                   resource: version-semver}
-          # TODO: release a file
-          # - put: stackdriver-nozzle-tile
-          # params: {file: canidate/latest-nozzle-tile.pivotal}
+      - put: stackdriver-nozzle-tile
+        params: {file: canidate/latest-nozzle-tile.pivotal}
 
-      - task: release-tile
-        file: stackdriver-tools/ci/tasks/release-tile.yml
+      - task: build-tile
+        file: stackdriver-tools/ci/tasks/build-tile.yml
 
 resources:
   - name: stackdriver-tools-in
