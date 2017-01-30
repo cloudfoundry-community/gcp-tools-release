@@ -3,8 +3,7 @@ platform: linux
 image_resource:
   type: docker-image
   source:
-    repository: lambr/gcp-tools
-    tag: v3
+    repository: cfplatformeng/tile-generator 
 inputs:
   - name: stackdriver-tools
   - name: version-semver
