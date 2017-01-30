@@ -100,13 +100,13 @@ jobs:
     plan:
       - aggregate:
         - {trigger: true,  passed: [deploy-candidate],  get: stackdriver-tools,                resource: stackdriver-tools-in}
-        - {trigger: false,                             get: version-semver,                   resource: version-semver}
-      - put: stackdriver-nozzle-tile
-        params: {file: candidate/latest-nozzle-tile.pivotal}
+        - {trigger: false,                              get: version-semver,                   resource: version-semver}
 
       - task: build-tile
         file: stackdriver-tools/ci/tasks/build-tile.yml
 
+      - put: stackdriver-nozzle-tile
+        params: {file: candidate/*.pivotal}
 resources:
   - name: stackdriver-tools-in
     type: git
