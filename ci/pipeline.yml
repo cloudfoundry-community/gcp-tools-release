@@ -99,7 +99,7 @@ jobs:
   - name: build-tile
     plan:
       - aggregate:
-        - {trigger: true,  passed: [build-candidate],  get: stackdriver-tools,                resource: stackdriver-tools-in}
+        - {trigger: true,  passed: [deploy-candidate],  get: stackdriver-tools,                resource: stackdriver-tools-in}
         - {trigger: false,                             get: version-semver,                   resource: version-semver}
       - put: stackdriver-nozzle-tile
         params: {file: canidate/latest-nozzle-tile.pivotal}
