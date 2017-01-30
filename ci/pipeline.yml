@@ -1,11 +1,4 @@
 ---
-groups:
-  - name: stackdriver-tools
-    jobs:
-      - test-unit
-      - build-candidate
-      - deploy-candidate
-
 jobs:
   - name: test-unit
     plan:
