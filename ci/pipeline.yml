@@ -62,9 +62,9 @@ jobs:
   - name: deploy-candidate
     plan:
       - aggregate:
-        - {trigger: true,  passed: [build-canidate],  get: stackdriver-tools,                resource: stackdriver-tools-in}
-        - {trigger: true,  passed: [build-canidate],  get: stackdriver-tools-artifacts,      resource: stackdriver-tools-artifacts}
-        - {trigger: false, passed: [build-canidate],  get: stackdriver-tools-artifacts-sha1, resource: stackdriver-tools-artifacts-sha1}
+        - {trigger: true,  passed: [build-candidate],  get: stackdriver-tools,                resource: stackdriver-tools-in}
+        - {trigger: true,  passed: [build-candidate],  get: stackdriver-tools-artifacts,      resource: stackdriver-tools-artifacts}
+        - {trigger: false, passed: [build-candidate],  get: stackdriver-tools-artifacts-sha1, resource: stackdriver-tools-artifacts-sha1}
 
       - task: build-release
         file: stackdriver-tools/ci/tasks/deploy-candidate.yml
