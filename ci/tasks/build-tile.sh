@@ -12,4 +12,4 @@ image_name=${cpi_release_name}-${semver}.tgz
 image_path="https://storage.googleapis.com/bosh-gcp/beta/stackdriver-tools/${image_name}"
 
 echo "${image_path}"
-echo "${image_path}" > canidate/latest-nozzle-tile.pivotal
+echo "${image_path}" > candidiate/latest-nozzle-tile.pivotal
