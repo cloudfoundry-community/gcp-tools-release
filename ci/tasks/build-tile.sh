@@ -13,3 +13,5 @@ image_path="https://storage.googleapis.com/bosh-gcp/beta/stackdriver-tools/${ima
 
 echo "Will build tile based off of: ${image_pathj"
 
+tile_file="candidate/latest-stackdriver-nozzle.pivotal"
+echo "${image_path}" > ${tile_file}
