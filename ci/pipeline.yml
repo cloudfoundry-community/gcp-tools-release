@@ -68,6 +68,7 @@ jobs:
 
       - task: build-release
         file: stackdriver-tools/ci/tasks/deploy-candidate.yml
+        attempts: 2
         on_failure:
           aggregate:
             - put: slack-alert
