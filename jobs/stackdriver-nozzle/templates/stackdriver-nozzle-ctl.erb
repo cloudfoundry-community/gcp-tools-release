@@ -37,8 +37,8 @@ case $1 in
     echo $$ > $PIDFILE
 
     exec chpst -u vcap:vcap /var/vcap/packages/stackdriver-nozzle/bin/stackdriver-nozzle \
-      >>$LOG_DIR/stackdriver-nozzle.stdout.log \
-      2>>$LOG_DIR/stackdriver-nozzle.stderr.log
+      >> >(tee $LOG_DIR/stackdriver-nozzle.stdout.log) \
+      2>> >(tee $LOG_DIR/stackdriver-nozzle.stderr.log >&2)
 
     ;;
 
