@@ -41,7 +41,7 @@ type metricSink struct {
 }
 
 func (ms *metricSink) Receive(envelope *events.Envelope) error {
-	labels := ms.labelMaker.Build(envelope)
+	labels := ms.labelMaker.MetricLabels(envelope)
 
 	timestamp := time.Duration(envelope.GetTimestamp())
 	eventTime := time.Unix(
