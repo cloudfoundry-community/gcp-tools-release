@@ -27,6 +27,10 @@ type App struct {
 	bufferEmpty func() bool
 }
 
+type HasData interface {
+	Data() lager.Data
+}
+
 func New(c *config.Config, logger lager.Logger) *App {
 	logger.Info("version", lager.Data{"name": version.Name, "release": version.Release(), "user_agent": version.UserAgent()})
 	logger.Info("arguments", c.ToData())
@@ -157,7 +161,11 @@ func (a *App) newMetricSink(ctx context.Context, metricAdapter stackdriver.Metri
 	a.bufferEmpty = metricBuffer.IsEmpty
 	go func() {
 		for err := range errs {
-			a.logger.Error("metricsBuffer", err)
+			if errData, ok := err.(HasData); ok {
+				a.logger.Error("metricsBuffer", err, errData.Data())
+			} else {
+				a.logger.Error("metricsBuffer", err)
+			}
 		}
 	}()
 
