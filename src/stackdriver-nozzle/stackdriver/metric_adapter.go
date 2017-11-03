@@ -24,15 +24,12 @@ import (
 	"time"
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
+	"github.com/cloudfoundry/lager"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	labelpb "google.golang.org/genproto/googleapis/api/label"
 	metricpb "google.golang.org/genproto/googleapis/api/metric"
 	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
 )
-
-type MetricAdapter interface {
-	PostMetricEvents([]*messages.MetricEvent) error
-}
 
 type Heartbeater interface {
 	Start()
@@ -41,34 +38,44 @@ type Heartbeater interface {
 	Stop()
 }
 
-type metricAdapter struct {
-	projectID             string
-	client                MetricClient
-	descriptors           map[string]struct{}
-	createDescriptorMutex *sync.Mutex
-	heartbeater           Heartbeater
-}
-
 type postMetricErr struct {
 	metricDescriptor []error
 	postErr          error
+	request          *monitoringpb.CreateTimeSeriesRequest
 	heartbeater      Heartbeater
 }
 
-func (pme *postMetricErr) BuildError() error {
-	pme.processErrors()
-	if pme == nil || pme.postErr == nil && len(pme.metricDescriptor) == 0 {
+// isError returns true if the postMetricError contains errors.
+func (pme *postMetricErr) isError() bool {
+	return pme != nil && (pme.postErr != nil || len(pme.metricDescriptor) > 0)
+}
+
+// Data fulfils app.HasData, so we can log structured information about
+// stackdriver errors.
+func (pme *postMetricErr) Data() lager.Data {
+	if !pme.isError() {
 		return nil
 	}
 
-	return fmt.Errorf("PostMetricEvents, PostErr: %v, MetricDescriptor: %v", pme.postErr, pme.metricDescriptor)
+	d := lager.Data{"request": pme.request}
+	if len(pme.metricDescriptor) > 0 {
+		d["descriptorErrors"] = pme.metricDescriptor
+	}
+	return d
 }
 
-func (pme *postMetricErr) processErrors() {
-	if pme == nil || pme.postErr == nil && len(pme.metricDescriptor) == 0 {
-		return
+// Error fulfils error, so we can return a postMetricErr directly.
+func (pme *postMetricErr) Error() string {
+	if !pme.isError() {
+		return ""
 	}
+	if pme.postErr == nil {
+		return "errors creating metric descriptors"
+	}
+	return pme.postErr.Error()
+}
 
+func (pme *postMetricErr) processErrors() error {
 	if pme.postErr != nil {
 		pme.heartbeater.Increment("metrics.post.errors")
 
@@ -87,6 +94,23 @@ func (pme *postMetricErr) processErrors() {
 	if metricDescriptorErrs > 0 {
 		pme.heartbeater.IncrementBy("metrics.metric_descriptor.errors", uint(metricDescriptorErrs))
 	}
+
+	if pme.isError() {
+		return pme
+	}
+	return nil
+}
+
+type MetricAdapter interface {
+	PostMetricEvents([]*messages.MetricEvent) error
+}
+
+type metricAdapter struct {
+	projectID             string
+	client                MetricClient
+	descriptors           map[string]struct{}
+	createDescriptorMutex *sync.Mutex
+	heartbeater           Heartbeater
 }
 
 // NewMetricAdapter returns a MetricAdapater that can write to Stackdriver Monitoring
@@ -106,7 +130,7 @@ func NewMetricAdapter(projectID string, client MetricClient, heartbeater Heartbe
 func (ma *metricAdapter) PostMetricEvents(events []*messages.MetricEvent) error {
 	var timeSerieses []*monitoringpb.TimeSeries
 
-	compositeErr := postMetricErr{heartbeater: ma.heartbeater}
+	compositeErr := &postMetricErr{heartbeater: ma.heartbeater}
 
 	for _, event := range events {
 		if len(event.Metrics) == 0 {
@@ -141,9 +165,9 @@ func (ma *metricAdapter) PostMetricEvents(events []*messages.MetricEvent) error 
 	}
 
 	ma.heartbeater.Increment("metrics.requests")
+	compositeErr.request = request
 	compositeErr.postErr = ma.client.Post(request)
-
-	return compositeErr.BuildError()
+	return compositeErr.processErrors()
 }
 
 func (ma *metricAdapter) CreateMetricDescriptor(metric *messages.Metric, labels map[string]string) error {
