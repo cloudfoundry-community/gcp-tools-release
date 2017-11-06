@@ -70,7 +70,7 @@ func New(c *config.Config, logger lager.Logger) *App {
 	} else {
 		appInfoRepository = cloudfoundry.NullAppInfoRepository()
 	}
-	labelMaker := nozzle.NewLabelMaker(appInfoRepository)
+	labelMaker := nozzle.NewLabelMaker(appInfoRepository, c.BoshDirectorName)
 
 	return &App{
 		logger:      logger,
@@ -161,5 +161,5 @@ func (a *App) newMetricSink(ctx context.Context, metricAdapter stackdriver.Metri
 		}
 	}()
 
-	return nozzle.NewMetricSink(a.labelMaker, metricBuffer, nozzle.NewUnitParser())
+	return nozzle.NewMetricSink(a.c.MetricPathPrefix, a.labelMaker, metricBuffer, nozzle.NewUnitParser())
 }
