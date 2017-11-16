@@ -70,7 +70,7 @@ func New(c *config.Config, logger lager.Logger) *App {
 	} else {
 		appInfoRepository = cloudfoundry.NullAppInfoRepository()
 	}
-	labelMaker := nozzle.NewLabelMaker(appInfoRepository, c.BoshDirectorName)
+	labelMaker := nozzle.NewLabelMaker(appInfoRepository, c.BoshFoundationName)
 
 	return &App{
 		logger:      logger,

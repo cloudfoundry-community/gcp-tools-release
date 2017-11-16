@@ -6,7 +6,7 @@ end
 ---
 name: <%=ENV["TILE_NAME"] %>
 label: <%=ENV["TILE_LABEL"] %>
-description: Import your Cloud Foundry logs and metrics into Stackdriver Logging and Monitoring for diagnostics and alerting 
+description: Import your Cloud Foundry logs and metrics into Stackdriver Logging and Monitoring for diagnostics and alerting
 icon_file: gcp_logo.png
 packages:
 - name: stackdriver-tools
@@ -40,7 +40,7 @@ packages:
         metrics_buffer_duration: (( .properties.metrics_buffer_duration.value ))
         metrics_batch_size: (( .properties.metrics_batch_size.value ))
         metric_path_prefix: (( .properties.metric_path_prefix.value ))
-        bosh_director_name: (( .properties.bosh_director_name.value ))
+        bosh_foundation_name: (( .properties.bosh_foundation_name.value ))
         logging_batch_count: (( .properties.logging_batch_count.value ))
         logging_batch_duration: (( .properties.logging_batch_duration.value ))
         debug: (( .properties.debug.value ))
@@ -59,7 +59,7 @@ forms:
     default: HttpStartStop,LogMessage,Error
     label: Whitelist for Stackdriver Logging
     description: |
-      Comma separated list without spaces consisting of any or all of HttpStartStop,LogMessage,Error. 
+      Comma separated list without spaces consisting of any or all of HttpStartStop,LogMessage,Error.
       The following events are in beta can also be used: ValueMetric,CounterEvent,ContainerMetric
   - name: firehose_events_to_stackdriver_monitoring
     type: string
@@ -111,11 +111,11 @@ forms:
     default: firehose
     label: Metric Path Prefix
     description: Prefix added to all metric names being sent to Stackdriver, e.g. 'custom/PREFIX/gorouter.total_requests'. May contain slashes.
-  - name: bosh_director_name
+  - name: bosh_foundation_name
     type: string
     default: cf
-    label: Bosh Director Name
-    description: Name added as the 'director' label to all time series being sent to Stackdriver, useful for differentiating between multiple PCF instances in a project.
+    label: Bosh Foundation Name
+    description: Name added as the 'foundation' label to all time series being sent to Stackdriver, useful for differentiating between multiple PCF instances in a project.
   - name: debug
     type: boolean
     default: false
