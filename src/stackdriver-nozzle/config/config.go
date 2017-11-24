@@ -66,6 +66,7 @@ type Config struct {
 	MetricsBufferDuration int    `envconfig:"metrics_buffer_duration" default:"30"`
 	MetricsBatchSize      int    `envconfig:"metrics_batch_size" default:"200"`
 	MetricPathPrefix      string `envconfig:"metric_path_prefix" default:"firehose"`
+	RuntimeMetricRe       string `envconfig:"runtime_metric_re" default:"^(numCPUS|numGoRoutines|memoryStats\\..*)$"`
 	FoundationName        string `envconfig:"foundation_name" default:"cf"`
 	ResolveAppMetadata    bool   `envconfig:"resolve_app_metadata"`
 	NozzleId              string `envconfig:"nozzle_id" default:"local-nozzle"`

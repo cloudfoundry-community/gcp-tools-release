@@ -19,6 +19,7 @@ package nozzle
 import (
 	"bytes"
 	"fmt"
+	"regexp"
 	"time"
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
@@ -28,14 +29,19 @@ import (
 )
 
 // NewLogSink returns a Sink that can receive sonde Events, translate them and send them to a stackdriver.MetricAdapter
-func NewMetricSink(logger lager.Logger, pathPrefix string, labelMaker LabelMaker, metricAdapter stackdriver.MetricAdapter, unitParser UnitParser) Sink {
-	return &metricSink{
-		pathPrefix:    pathPrefix,
-		labelMaker:    labelMaker,
-		metricAdapter: metricAdapter,
-		unitParser:    unitParser,
-		logger:        logger,
+func NewMetricSink(logger lager.Logger, pathPrefix string, labelMaker LabelMaker, metricAdapter stackdriver.MetricAdapter, unitParser UnitParser, runtimeMetricRe string) (Sink, error) {
+	r, err := regexp.Compile(runtimeMetricRe)
+	if err != nil {
+		return nil, err
 	}
+	return &metricSink{
+		pathPrefix:      pathPrefix,
+		labelMaker:      labelMaker,
+		metricAdapter:   metricAdapter,
+		unitParser:      unitParser,
+		logger:          logger,
+		runtimeMetricRe: r,
+	}, nil
 }
 
 type metricSink struct {
@@ -44,6 +50,13 @@ type metricSink struct {
 	metricAdapter stackdriver.MetricAdapter
 	unitParser    UnitParser
 	logger        lager.Logger
+	// runtimeMetricRe is a regexp that a ValueMetric name is matched against.
+	// If it matches, the metric name will not be prepended by the origin name, and origin instead will be added as a metric label.
+	runtimeMetricRe *regexp.Regexp
+}
+
+func (ms *metricSink) isRuntimeMetric(envelope *events.Envelope) bool {
+	return envelope.GetEventType() == events.Envelope_ValueMetric && ms.runtimeMetricRe.MatchString(envelope.GetValueMetric().GetName())
 }
 
 func (ms *metricSink) getPrefix(envelope *events.Envelope) string {
@@ -52,7 +65,8 @@ func (ms *metricSink) getPrefix(envelope *events.Envelope) string {
 		buf.WriteString(ms.pathPrefix)
 		buf.WriteString("/")
 	}
-	if envelope.GetOrigin() != "" {
+	// Non-runtime metrics get origin prepended to metric name.
+	if !ms.isRuntimeMetric(envelope) && envelope.GetOrigin() != "" {
 		buf.WriteString(envelope.GetOrigin())
 		buf.WriteString(".")
 	}
@@ -61,6 +75,10 @@ func (ms *metricSink) getPrefix(envelope *events.Envelope) string {
 
 func (ms *metricSink) Receive(envelope *events.Envelope) {
 	labels := ms.labelMaker.MetricLabels(envelope)
+	if ms.isRuntimeMetric(envelope) {
+		// Runtime metrics get origin added as a metric label.
+		labels["origin"] = envelope.GetOrigin()
+	}
 	metricPrefix := ms.getPrefix(envelope)
 	eventType := envelope.GetEventType()
 

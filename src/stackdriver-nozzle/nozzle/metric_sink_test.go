@@ -55,7 +55,7 @@ var _ = Describe("MetricSink", func() {
 		unitParser = &mockUnitParser{}
 		logger = &mocks.MockLogger{}
 
-		subject = nozzle.NewMetricSink(logger, "firehose", labelMaker, metricBuffer, unitParser)
+		subject, _ = nozzle.NewMetricSink(logger, "firehose", labelMaker, metricBuffer, unitParser, "^runtimeMetric\\..*")
 	})
 
 	It("creates metric for ValueMetric", func() {
@@ -95,6 +95,41 @@ var _ = Describe("MetricSink", func() {
 		Expect(metrics[0].EventTime.UnixNano()).To(Equal(timeStamp))
 
 		Expect(unitParser.lastInput).To(Equal("barUnit"))
+	})
+
+	It("handles runtime ValueMetric", func() {
+		eventTime := time.Now()
+
+		origin := "myOrigin"
+		name := "runtimeMetric.foobar"
+		value := 123.456
+		event := events.ValueMetric{
+			Name:  &name,
+			Value: &value,
+		}
+
+		eventType := events.Envelope_ValueMetric
+		timeStamp := eventTime.UnixNano()
+		envelope := &events.Envelope{
+			Origin:      &origin,
+			EventType:   &eventType,
+			ValueMetric: &event,
+			Timestamp:   &timeStamp,
+		}
+
+		subject.Receive(envelope)
+
+		metrics := metricBuffer.PostedMetrics
+		Expect(metrics).To(HaveLen(1))
+		Expect(metrics[0]).To(MatchAllFields(Fields{
+			"Name":      Equal("firehose/runtimeMetric.foobar"),
+			"Labels":    Equal(map[string]string{"foo": "bar", "origin": "myOrigin"}),
+			"Value":     Equal(123.456),
+			"EventTime": Ignore(),
+			"Unit":      Ignore(),
+			"Type":      Ignore(),
+		}))
+		Expect(metrics[0].EventTime.UnixNano()).To(Equal(timeStamp))
 	})
 
 	It("creates the proper metrics for ContainerMetric", func() {
