@@ -21,8 +21,6 @@ import (
 	"sync"
 )
 
-const prefix = "stackdriver-nozzle/"
-
 type Counter struct {
 	expvar.Int
 }
@@ -40,46 +38,120 @@ func (cm *CounterMap) Category() string {
 	return cm.category
 }
 
-func NewCounter(name string) *Counter {
+// A MetricSet contains a map of metric prefixes and enables
+// the creation of new prefixes which are automatically exported.
+type MetricSet struct {
+	prefixes map[string]*MetricPrefix
+	mu       sync.Mutex
+}
+
+var metricSet = &MetricSet{
+	prefixes: map[string]*MetricPrefix{},
+}
+
+// NewMetricPrefix creates a new MetricPrefix which prepends "prefix/"
+// to all metrics created and exported by that prefix.
+func (ms *MetricSet) NewMetricPrefix(prefix string) *MetricPrefix {
+	ms.mu.Lock()
+	defer ms.mu.Unlock()
+	if mp, ok := ms.prefixes[prefix]; ok {
+		return mp
+	}
+	ms.prefixes[prefix] = &MetricPrefix{
+		prefix:   prefix + "/",
+		counters: []string{},
+	}
+	return ms.prefixes[prefix]
+}
+
+// Do runs f across all variables exported by all prefixes.
+// The prefix map is locked during the iteration,
+// but existing entries may be concurrently updated.
+func (ms *MetricSet) Do(f func(expvar.KeyValue)) {
+	ms.mu.Lock()
+	defer ms.mu.Unlock()
+	for _, mp := range ms.prefixes {
+		mp.Do(f)
+	}
+}
+
+// Do runs f across all variables exported by all prefixes.
+// The default prefix map is locked during the iteration,
+// but existing entries may be concurrently updated.
+func Do(f func(expvar.KeyValue)) {
+	metricSet.Do(f)
+}
+
+// A MetricPrefix contains a list of counter names that have been
+// exported via package expvar, and allows them to be manipulated.
+type MetricPrefix struct {
+	prefix   string
+	counters []string
+	mu       sync.Mutex
+}
+
+var nozzleMetrics = NewMetricPrefix("stackdriver-nozzle")
+
+// NewMetricPrefix creates a new MetricPrefix in the default metric set.
+func NewMetricPrefix(prefix string) *MetricPrefix {
+	return metricSet.NewMetricPrefix(prefix)
+}
+
+// NewCounter creates and exports a new Counter for the MetricPrefix.
+func (mp *MetricPrefix) NewCounter(name string) *Counter {
 	v := new(Counter)
-	publish(name, v)
+	mp.publish(name, v)
 	return v
 }
 
-func NewCounterMap(name, category string) *CounterMap {
+// NewCounter creates and exports a new Counter with the prefix "stackdriver-nozzle".
+func NewCounter(name string) *Counter {
+	return nozzleMetrics.NewCounter(name)
+}
+
+// NewCounterMap creates and exports a new CounterMap for the MetricPrefix.
+func (mp *MetricPrefix) NewCounterMap(name, category string) *CounterMap {
 	v := new(CounterMap)
 	v.category = category
 
-	publish(name, v)
+	mp.publish(name, v)
 	return v
 }
 
-var counters []string
-var countersMu sync.Mutex
+// NewCounter creates and exports a new CounterMap with the prefix "stackdriver-nozzle".
+func NewCounterMap(name, category string) *CounterMap {
+	return nozzleMetrics.NewCounterMap(name, category)
+}
 
-func publish(name string, v expvar.Var) {
-	countersMu.Lock()
-	defer countersMu.Unlock()
+func (mp *MetricPrefix) publish(name string, v expvar.Var) {
+	mp.mu.Lock()
+	defer mp.mu.Unlock()
 
-	counters = append(counters, name)
-	expvar.Publish(prefix+name, v)
+	mp.counters = append(mp.counters, name)
+	expvar.Publish(mp.prefix+name, v)
 }
 
 // Do calls f for each exported variable.
-// The global counter map is locked during the iteration,
+// The global counter list is locked during the iteration,
 // but existing entries may be concurrently updated.
-func Do(f func(expvar.KeyValue)) {
-	countersMu.Lock()
-	defer countersMu.Unlock()
+func (mp *MetricPrefix) Do(f func(expvar.KeyValue)) {
+	mp.mu.Lock()
+	defer mp.mu.Unlock()
 
-	for _, k := range counters {
+	for _, k := range mp.counters {
 		val := Get(k)
 		f(expvar.KeyValue{Key: k, Value: val.(expvar.Var)})
 	}
 }
 
-// Get retrieves a named exported variable. It returns nil if the name has
-// not been registered.
+// Get retrieves a named exported variable from the MetricPrefix.
+// It returns nil if the name has not been registered.
+func (mp *MetricPrefix) Get(name string) expvar.Var {
+	return expvar.Get(mp.prefix + name)
+}
+
+// Get retrieves a named exported variable from the "stackdriver-nozzle"
+// prefix. It returns nil if the name has not been registered.
 func Get(name string) expvar.Var {
-	return expvar.Get(prefix + name)
+	return nozzleMetrics.Get(name)
 }
