@@ -56,7 +56,7 @@ var _ = Describe("TelemetrySink", func() {
 			Expect(req.Name).To(Equal(projectPath))
 			descriptor := req.MetricDescriptor
 
-			displayName := "stackdriver-nozzle/" + newData.Key
+			displayName := telemetry.Nozzle.Qualify(newData.Key)
 			metricType := "custom.googleapis.com/" + displayName
 			name := projectPath + "/metricDescriptors/" + metricType
 

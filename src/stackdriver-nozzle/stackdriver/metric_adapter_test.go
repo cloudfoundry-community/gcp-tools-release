@@ -27,7 +27,6 @@ import (
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry/telemetrytest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -49,8 +48,6 @@ var _ = Describe("MetricAdapter", func() {
 		client = &mocks.MockClient{}
 		logger = &mocks.MockLogger{}
 		subject, _ = stackdriver.NewMetricAdapter("my-awesome-project", client, batchSize, logger)
-
-		telemetrytest.Reset()
 	})
 
 	It("takes metrics and posts a time series", func() {
@@ -240,6 +237,10 @@ var _ = Describe("MetricAdapter", func() {
 	})
 
 	It("increments metrics counters", func() {
+		stackdriver.FirehoseEventsCount.Set(0)
+		stackdriver.TimeSeriesCount.Set(0)
+		stackdriver.TimeSeriesReqs.Set(0)
+
 		metricEvents := []*messages.MetricEvent{
 			{Metrics: []*messages.Metric{
 				{
@@ -258,17 +259,20 @@ var _ = Describe("MetricAdapter", func() {
 			}}}
 
 		subject.PostMetricEvents(metricEvents)
-		Expect(telemetrytest.Counter("metrics.firehose_events.emitted.count")).To(Equal(2))
-		Expect(telemetrytest.Counter("metrics.timeseries.count")).To(Equal(3))
-		Expect(telemetrytest.Counter("metrics.timeseries.requests")).To(Equal(1))
+		Expect(stackdriver.FirehoseEventsCount.IntValue()).To(Equal(2))
+		Expect(stackdriver.TimeSeriesCount.IntValue()).To(Equal(3))
+		Expect(stackdriver.TimeSeriesReqs.IntValue()).To(Equal(1))
 
 		subject.PostMetricEvents(metricEvents)
-		Expect(telemetrytest.Counter("metrics.firehose_events.emitted.count")).To(Equal(4))
-		Expect(telemetrytest.Counter("metrics.timeseries.count")).To(Equal(6))
-		Expect(telemetrytest.Counter("metrics.timeseries.requests")).To(Equal(2))
+		Expect(stackdriver.FirehoseEventsCount.IntValue()).To(Equal(4))
+		Expect(stackdriver.TimeSeriesCount.IntValue()).To(Equal(6))
+		Expect(stackdriver.TimeSeriesReqs.IntValue()).To(Equal(2))
 	})
 
 	It("measures out of order errors", func() {
+		stackdriver.TimeSeriesErrOutOfOrder.Set(0)
+		stackdriver.TimeSeriesErrUnknown.Set(0)
+
 		metricEvents := []*messages.MetricEvent{{Metrics: []*messages.Metric{{}}}}
 
 		client.PostFn = func(req *monitoringpb.CreateTimeSeriesRequest) error {
@@ -276,18 +280,21 @@ var _ = Describe("MetricAdapter", func() {
 		}
 
 		subject.PostMetricEvents(metricEvents)
-		Expect(telemetrytest.MapCounter("metrics.timeseries.errors", "out_of_order")).To(Equal(1))
-		Expect(telemetrytest.MapCounter("metrics.timeseries.errors", "unknown")).To(Equal(0))
+		Expect(stackdriver.TimeSeriesErrOutOfOrder.IntValue()).To(Equal(1))
+		Expect(stackdriver.TimeSeriesErrUnknown.IntValue()).To(Equal(0))
 	})
 
 	It("measures unknown errors", func() {
+		stackdriver.TimeSeriesErrOutOfOrder.Set(0)
+		stackdriver.TimeSeriesErrUnknown.Set(0)
+
 		metricEvents := []*messages.MetricEvent{{Metrics: []*messages.Metric{{}}}}
 
 		client.PostFn = func(req *monitoringpb.CreateTimeSeriesRequest) error {
 			return errors.New("tragedy strikes")
 		}
 		subject.PostMetricEvents(metricEvents)
-		Expect(telemetrytest.MapCounter("metrics.timeseries.errors", "out_of_order")).To(Equal(0))
-		Expect(telemetrytest.MapCounter("metrics.timeseries.errors", "unknown")).To(Equal(1))
+		Expect(stackdriver.TimeSeriesErrOutOfOrder.IntValue()).To(Equal(0))
+		Expect(stackdriver.TimeSeriesErrUnknown.IntValue()).To(Equal(1))
 	})
 })

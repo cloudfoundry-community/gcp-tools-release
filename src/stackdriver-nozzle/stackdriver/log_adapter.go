@@ -33,11 +33,11 @@ const (
 )
 
 var (
-	logsCount *telemetry.Counter
+	LogsCount *telemetry.Counter
 )
 
 func init() {
-	logsCount = telemetry.NewCounter("logs.count")
+	LogsCount = telemetry.Nozzle.NewCounter("logs.count")
 }
 
 type LogAdapter interface {
@@ -83,7 +83,7 @@ type logAdapter struct {
 
 // PostLog sends a single message to Stackdriver Logging
 func (s *logAdapter) PostLog(log *messages.Log) {
-	logsCount.Increment()
+	LogsCount.Increment()
 	entry := logging.Entry{
 		Payload:  log.Payload,
 		Labels:   log.Labels,

@@ -25,7 +25,6 @@ import (
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 	. "github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/metrics_pipeline"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry/telemetrytest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -39,8 +38,7 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 	BeforeEach(func() {
 		metricAdapter = &mocks.MetricAdapter{}
 		logger = &mocks.MockLogger{}
-
-		telemetrytest.Reset()
+		EventsSampledCount.Set(0)
 	})
 
 	It("culls duplicate metrics", func() {
@@ -74,7 +72,7 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 		postedEvent := metricAdapter.GetPostedMetricEvents()[0]
 		Expect(postedEvent.Metrics).To(HaveLen(2))
 		Expect(postedEvent).To(BeEquivalentTo(expected[0]))
-		Expect(telemetrytest.Counter("metrics.firehose_events.sampled.count")).To(Equal(1))
+		Expect(EventsSampledCount.IntValue()).To(Equal(1))
 	})
 
 	It("culls multiple duplicates, keeping the latest", func() {
@@ -123,7 +121,7 @@ var _ = Describe("autoCulledMetricsBuffer", func() {
 		sort.Sort(actual)
 
 		Expect(actual).To(BeEquivalentTo(expected))
-		Expect(telemetrytest.Counter("metrics.firehose_events.sampled.count")).To(Equal(2))
+		Expect(EventsSampledCount.IntValue()).To(Equal(2))
 	})
 
 	It("it buffers metrics for the expected duration before flushing", func() {

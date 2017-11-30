@@ -29,11 +29,12 @@ import (
 )
 
 var (
-	eventsSampledCount *telemetry.Counter
+	// Exported so that tests outside the metrics_pipeline package can read values.
+	EventsSampledCount *telemetry.Counter
 )
 
 func init() {
-	eventsSampledCount = telemetry.NewCounter("metrics.firehose_events.sampled.count")
+	EventsSampledCount = telemetry.Nozzle.NewCounter("metrics.firehose_events.sampled.count")
 }
 
 type autoCulledMetricsBuffer struct {
@@ -70,7 +71,7 @@ func (mb *autoCulledMetricsBuffer) PostMetricEvents(events []*messages.MetricEve
 		if !exists {
 			mb.metrics[hash] = event
 		} else {
-			eventsSampledCount.Increment()
+			EventsSampledCount.Increment()
 			if event.Metrics[0].EventTime.After(old.Metrics[0].EventTime) {
 				// Firehose messages are not guaranteed to be received in
 				// timestamp order, so only overwrite the sampled metric

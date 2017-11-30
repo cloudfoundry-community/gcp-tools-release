@@ -38,34 +38,34 @@ type MetricAdapter interface {
 }
 
 var (
-	timeSeriesReqs  *telemetry.Counter
-	timeSeriesCount *telemetry.Counter
-	timeSeriesErrs  *telemetry.CounterMap
+	TimeSeriesReqs  *telemetry.Counter
+	TimeSeriesCount *telemetry.Counter
+	TimeSeriesErrs  *telemetry.CounterMap
 
-	timeSeriesErrOutOfOrder *telemetry.Counter
-	timeSeriesErrUnknown    *telemetry.Counter
+	TimeSeriesErrOutOfOrder *telemetry.Counter
+	TimeSeriesErrUnknown    *telemetry.Counter
 
-	firehoseEventsCount *telemetry.Counter
+	FirehoseEventsCount *telemetry.Counter
 
-	descriptorReqs *telemetry.Counter
-	descriptorErrs *telemetry.Counter
+	DescriptorReqs *telemetry.Counter
+	DescriptorErrs *telemetry.Counter
 )
 
 func init() {
-	timeSeriesReqs = telemetry.NewCounter("metrics.timeseries.requests")
-	timeSeriesCount = telemetry.NewCounter("metrics.timeseries.count")
-	timeSeriesErrs = telemetry.NewCounterMap("metrics.timeseries.errors", "error_type")
+	TimeSeriesReqs = telemetry.Nozzle.NewCounter("metrics.timeseries.requests")
+	TimeSeriesCount = telemetry.Nozzle.NewCounter("metrics.timeseries.count")
+	TimeSeriesErrs = telemetry.Nozzle.NewCounterMap("metrics.timeseries.errors", "error_type")
 
-	timeSeriesErrOutOfOrder = &telemetry.Counter{}
-	timeSeriesErrUnknown = &telemetry.Counter{}
+	TimeSeriesErrOutOfOrder = &telemetry.Counter{}
+	TimeSeriesErrUnknown = &telemetry.Counter{}
 
-	timeSeriesErrs.Set("out_of_order", timeSeriesErrOutOfOrder)
-	timeSeriesErrs.Set("unknown", timeSeriesErrUnknown)
+	TimeSeriesErrs.Set("out_of_order", TimeSeriesErrOutOfOrder)
+	TimeSeriesErrs.Set("unknown", TimeSeriesErrUnknown)
 
-	firehoseEventsCount = telemetry.NewCounter("metrics.firehose_events.emitted.count")
+	FirehoseEventsCount = telemetry.Nozzle.NewCounter("metrics.firehose_events.emitted.count")
 
-	descriptorReqs = telemetry.NewCounter("metrics.descriptor.requests")
-	descriptorErrs = telemetry.NewCounter("metrics.descriptor.errors")
+	DescriptorReqs = telemetry.Nozzle.NewCounter("metrics.descriptor.requests")
+	DescriptorErrs = telemetry.Nozzle.NewCounter("metrics.descriptor.errors")
 }
 
 type metricAdapter struct {
@@ -110,7 +110,7 @@ func (ma *metricAdapter) PostMetricEvents(events []*messages.MetricEvent) {
 			high = count
 		}
 
-		timeSeriesReqs.Increment()
+		TimeSeriesReqs.Increment()
 		request := &monitoringpb.CreateTimeSeriesRequest{
 			Name:       projectName,
 			TimeSeries: series[low:high],
@@ -122,9 +122,9 @@ func (ma *metricAdapter) PostMetricEvents(events []*messages.MetricEvent) {
 			// If one nozzle writes a metric occurring at time T2 and this one tries to write at T1 (where T2 later than T1)
 			// we will receive this error.
 			if strings.Contains(err.Error(), `Points must be written in order`) {
-				timeSeriesErrOutOfOrder.Increment()
+				TimeSeriesErrOutOfOrder.Increment()
 			} else {
-				timeSeriesErrUnknown.Increment()
+				TimeSeriesErrUnknown.Increment()
 				ma.logger.Error("metricAdapter.PostMetricEvents", err, lager.Data{"info": "Unexpected Error", "request": request})
 			}
 		}
@@ -141,9 +141,9 @@ func (ma *metricAdapter) buildTimeSeries(events []*messages.MetricEvent) []*moni
 			continue
 		}
 
-		firehoseEventsCount.Increment()
+		FirehoseEventsCount.Increment()
 		for _, metric := range event.Metrics {
-			timeSeriesCount.Increment()
+			TimeSeriesCount.Increment()
 			err := ma.ensureMetricDescriptor(metric, event.Labels)
 			if err != nil {
 				ma.logger.Error("metricAdapter.buildTimeSeries", err, lager.Data{"metric": metric, "labels": event.Labels})
@@ -192,9 +192,9 @@ func (ma *metricAdapter) CreateMetricDescriptor(metric *messages.Metric, labels 
 		},
 	}
 
-	descriptorReqs.Increment()
+	DescriptorReqs.Increment()
 	if err := ma.client.CreateMetricDescriptor(req); err != nil {
-		descriptorErrs.Increment()
+		DescriptorErrs.Increment()
 		return err
 	}
 

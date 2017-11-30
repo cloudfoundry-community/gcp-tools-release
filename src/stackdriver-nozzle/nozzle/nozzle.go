@@ -37,37 +37,37 @@ type Nozzle interface {
 }
 
 var (
-	firehoseErrs *telemetry.CounterMap
+	FirehoseErrs *telemetry.CounterMap
 
-	firehoseErrEmpty                *telemetry.Counter
-	firehoseErrUnknown              *telemetry.Counter
-	firehoseErrCloseNormal          *telemetry.Counter
-	firehoseErrClosePolicyViolation *telemetry.Counter
-	firehoseErrCloseUnknown         *telemetry.Counter
+	FirehoseErrEmpty                *telemetry.Counter
+	FirehoseErrUnknown              *telemetry.Counter
+	FirehoseErrCloseNormal          *telemetry.Counter
+	FirehoseErrClosePolicyViolation *telemetry.Counter
+	FirehoseErrCloseUnknown         *telemetry.Counter
 
-	firehoseEventsTotal    *telemetry.Counter
-	firehoseEventsDropped  *telemetry.Counter
-	firehoseEventsReceived *telemetry.Counter
+	FirehoseEventsTotal    *telemetry.Counter
+	FirehoseEventsDropped  *telemetry.Counter
+	FirehoseEventsReceived *telemetry.Counter
 )
 
 func init() {
-	firehoseErrs = telemetry.NewCounterMap("firehose.errors", "error_type")
+	FirehoseErrs = telemetry.Nozzle.NewCounterMap("firehose.errors", "error_type")
 
-	firehoseErrEmpty = &telemetry.Counter{}
-	firehoseErrUnknown = &telemetry.Counter{}
-	firehoseErrCloseNormal = &telemetry.Counter{}
-	firehoseErrClosePolicyViolation = &telemetry.Counter{}
-	firehoseErrCloseUnknown = &telemetry.Counter{}
+	FirehoseErrEmpty = &telemetry.Counter{}
+	FirehoseErrUnknown = &telemetry.Counter{}
+	FirehoseErrCloseNormal = &telemetry.Counter{}
+	FirehoseErrClosePolicyViolation = &telemetry.Counter{}
+	FirehoseErrCloseUnknown = &telemetry.Counter{}
 
-	firehoseErrs.Set("empty", firehoseErrEmpty)
-	firehoseErrs.Set("unknown", firehoseErrUnknown)
-	firehoseErrs.Set("close_normal_closure", firehoseErrCloseNormal)
-	firehoseErrs.Set("close_policy_violation", firehoseErrClosePolicyViolation)
-	firehoseErrs.Set("close_unknown", firehoseErrCloseUnknown)
+	FirehoseErrs.Set("empty", FirehoseErrEmpty)
+	FirehoseErrs.Set("unknown", FirehoseErrUnknown)
+	FirehoseErrs.Set("close_normal_closure", FirehoseErrCloseNormal)
+	FirehoseErrs.Set("close_policy_violation", FirehoseErrClosePolicyViolation)
+	FirehoseErrs.Set("close_unknown", FirehoseErrCloseUnknown)
 
-	firehoseEventsTotal = telemetry.NewCounter("firehose_events.total")
-	firehoseEventsDropped = telemetry.NewCounter("firehose_events.dropped")
-	firehoseEventsReceived = telemetry.NewCounter("firehose_events.received")
+	FirehoseEventsTotal = telemetry.Nozzle.NewCounter("firehose_events.total")
+	FirehoseEventsDropped = telemetry.Nozzle.NewCounter("firehose_events.dropped")
+	FirehoseEventsReceived = telemetry.Nozzle.NewCounter("firehose_events.received")
 }
 
 type nozzle struct {
@@ -103,7 +103,7 @@ func (n *nozzle) Start(firehose cloudfoundry.Firehose) {
 		for err := range fhErrInternal {
 			if err == nil {
 				// Ignore empty errors. Customers observe a flooding of empty errors from firehose.
-				firehoseErrEmpty.Increment()
+				FirehoseErrEmpty.Increment()
 				continue
 			}
 
@@ -112,8 +112,8 @@ func (n *nozzle) Start(firehose cloudfoundry.Firehose) {
 	}()
 
 	buffer := diodes.NewPoller(diodes.NewOneToOne(bufferSize, diodes.AlertFunc(func(missed int) {
-		firehoseEventsDropped.Add(int64(missed))
-		firehoseEventsTotal.Add(int64(missed))
+		FirehoseEventsDropped.Add(int64(missed))
+		FirehoseEventsTotal.Add(int64(missed))
 	})))
 
 	// Drain messages from the firehose and place them into the ring buffer
@@ -154,8 +154,8 @@ func (n *nozzle) Stop() error {
 }
 
 func (n *nozzle) handleEvent(envelope *events.Envelope) {
-	firehoseEventsReceived.Increment()
-	firehoseEventsTotal.Increment()
+	FirehoseEventsReceived.Increment()
+	FirehoseEventsTotal.Increment()
 	if isMetric(envelope) {
 		n.metricSink.Receive(envelope)
 	} else {
@@ -172,17 +172,17 @@ func (n *nozzle) handleFirehoseError(err error) {
 
 	closeErr, ok := err.(*websocket.CloseError)
 	if !ok {
-		firehoseErrUnknown.Increment()
+		FirehoseErrUnknown.Increment()
 		return
 	}
 
 	switch closeErr.Code {
 	case websocket.CloseNormalClosure:
-		firehoseErrCloseNormal.Increment()
+		FirehoseErrCloseNormal.Increment()
 	case websocket.ClosePolicyViolation:
-		firehoseErrClosePolicyViolation.Increment()
+		FirehoseErrClosePolicyViolation.Increment()
 	default:
-		firehoseErrCloseUnknown.Increment()
+		FirehoseErrCloseUnknown.Increment()
 	}
 }
 
