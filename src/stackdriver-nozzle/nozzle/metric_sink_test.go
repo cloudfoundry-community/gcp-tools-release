@@ -17,6 +17,7 @@
 package nozzle
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -41,11 +42,12 @@ func (m *mockUnitParser) Parse(unit string) string {
 
 var _ = Describe("MetricSink", func() {
 	var (
-		subject      Sink
-		metricBuffer *mocks.MetricsBuffer
-		unitParser   *mockUnitParser
-		logger       *mocks.MockLogger
-		err          error
+		subject        Sink
+		metricBuffer   *mocks.MetricsBuffer
+		unitParser     *mockUnitParser
+		logger         *mocks.MockLogger
+		counterTracker *counterTracker
+		err            error
 	)
 
 	BeforeEach(func() {
@@ -54,8 +56,9 @@ var _ = Describe("MetricSink", func() {
 		metricBuffer = &mocks.MetricsBuffer{}
 		unitParser = &mockUnitParser{}
 		logger = &mocks.MockLogger{}
+		counterTracker = NewCounterTracker(context.TODO(), time.Duration(5)*time.Second, logger)
 
-		subject, err = NewMetricSink(logger, "firehose", labelMaker, metricBuffer, unitParser, "^runtimeMetric\\..*")
+		subject, err = NewMetricSink(logger, "firehose", labelMaker, metricBuffer, counterTracker, unitParser, "^runtimeMetric\\..*")
 		Expect(err).To(BeNil())
 	})
 
@@ -89,7 +92,8 @@ var _ = Describe("MetricSink", func() {
 			"Name":      Equal("firehose/origin.valueMetricName"),
 			"Labels":    Equal(map[string]string{"foundation": "foobar"}),
 			"Value":     Equal(123.456),
-			"EventTime": Ignore(),
+			"EventTime": BeTemporally("~", eventTime),
+			"StartTime": BeTemporally("~", eventTime),
 			"Unit":      Equal("{foo}"),
 			"Type":      Equal(eventType),
 		}))
@@ -126,7 +130,8 @@ var _ = Describe("MetricSink", func() {
 			"Name":      Equal("firehose/runtimeMetric.foobar"),
 			"Labels":    Equal(map[string]string{"foundation": "foobar", "origin": "myOrigin"}),
 			"Value":     Equal(123.456),
-			"EventTime": Ignore(),
+			"EventTime": BeTemporally("~", eventTime),
+			"StartTime": BeTemporally("~", eventTime),
 			"Unit":      Ignore(),
 			"Type":      Ignore(),
 		}))
@@ -175,61 +180,69 @@ var _ = Describe("MetricSink", func() {
 
 		labels := map[string]string{"foundation": "foobar", "instanceIndex": "0"}
 		Expect(metrics).To(MatchAllElements(eventName, Elements{
-			"firehose/origin.diskBytesQuota":   MatchAllFields(Fields{"Name": Ignore(), "Labels": Equal(labels), "Type": Equal(metricType), "Value": Equal(float64(1073741824)), "EventTime": Ignore(), "Unit": Equal("")}),
-			"firehose/origin.cpuPercentage":    MatchAllFields(Fields{"Name": Ignore(), "Labels": Equal(labels), "Type": Equal(metricType), "Value": Equal(float64(0.061651273460637)), "EventTime": Ignore(), "Unit": Equal("")}),
-			"firehose/origin.diskBytes":        MatchAllFields(Fields{"Name": Ignore(), "Labels": Equal(labels), "Type": Equal(metricType), "Value": Equal(float64(164634624)), "EventTime": Ignore(), "Unit": Equal("")}),
-			"firehose/origin.memoryBytes":      MatchAllFields(Fields{"Name": Ignore(), "Labels": Equal(labels), "Type": Equal(metricType), "Value": Equal(float64(16601088)), "EventTime": Ignore(), "Unit": Equal("")}),
-			"firehose/origin.memoryBytesQuota": MatchAllFields(Fields{"Name": Ignore(), "Labels": Equal(labels), "Type": Equal(metricType), "Value": Equal(float64(33554432)), "EventTime": Ignore(), "Unit": Equal("")}),
+			"firehose/origin.diskBytesQuota":   MatchAllFields(Fields{"Name": Ignore(), "Labels": Equal(labels), "Type": Equal(metricType), "Value": Equal(float64(1073741824)), "EventTime": Ignore(), "StartTime": Ignore(), "Unit": Equal("")}),
+			"firehose/origin.cpuPercentage":    MatchAllFields(Fields{"Name": Ignore(), "Labels": Equal(labels), "Type": Equal(metricType), "Value": Equal(float64(0.061651273460637)), "EventTime": Ignore(), "StartTime": Ignore(), "Unit": Equal("")}),
+			"firehose/origin.diskBytes":        MatchAllFields(Fields{"Name": Ignore(), "Labels": Equal(labels), "Type": Equal(metricType), "Value": Equal(float64(164634624)), "EventTime": Ignore(), "StartTime": Ignore(), "Unit": Equal("")}),
+			"firehose/origin.memoryBytes":      MatchAllFields(Fields{"Name": Ignore(), "Labels": Equal(labels), "Type": Equal(metricType), "Value": Equal(float64(16601088)), "EventTime": Ignore(), "StartTime": Ignore(), "Unit": Equal("")}),
+			"firehose/origin.memoryBytesQuota": MatchAllFields(Fields{"Name": Ignore(), "Labels": Equal(labels), "Type": Equal(metricType), "Value": Equal(float64(33554432)), "EventTime": Ignore(), "StartTime": Ignore(), "Unit": Equal("")}),
 		}))
 	})
 
-	It("creates total and delta metrics for CounterEvent", func() {
+	It("creates metrics for CounterEvent", func() {
 		eventTime := time.Now()
 
 		eventType := events.Envelope_CounterEvent
 		origin := "origin"
 		name := "counterName"
-		delta := uint64(654321)
-		total := uint64(123456)
-		timeStamp := eventTime.UnixNano()
 
-		event := events.CounterEvent{
-			Name:  &name,
-			Delta: &delta,
-			Total: &total,
-		}
-		envelope := &events.Envelope{
-			Origin:       &origin,
-			EventType:    &eventType,
-			CounterEvent: &event,
-			Timestamp:    &timeStamp,
+		// List of {delta, total} events to produce.
+		eventValues := [][]uint64{
+			{5, 105},
+			{10, 115},
+			{10, 125},
+			{5, 5}, // counter reset
+			{20, 25},
 		}
 
-		subject.Receive(envelope)
+		for idx, values := range eventValues {
+			ts := eventTime.UnixNano() + int64(idx*1e9) // Events are 1 second apart.
+			delta := uint64(values[0])
+			total := uint64(values[1])
+			subject.Receive(&events.Envelope{
+				Origin:    &origin,
+				EventType: &eventType,
+				Timestamp: &ts,
+				CounterEvent: &events.CounterEvent{
+					Name:  &name,
+					Delta: &delta,
+					Total: &total,
+				},
+			})
+		}
 
 		metrics := metricBuffer.PostedMetrics
-
+		Expect(metrics).To(HaveLen(4))
 		eventName := func(element interface{}) string {
 			return element.(messages.Metric).Name
 		}
-		Expect(metrics).To(MatchAllElements(eventName, Elements{
-			"firehose/origin.counterName.delta": MatchAllFields(Fields{
+		Expect(metrics).To(MatchElements(eventName, AllowDuplicates, Elements{
+			"firehose/origin.counterName": MatchAllFields(Fields{
 				"Name":      Ignore(),
 				"Labels":    Equal(map[string]string{"foundation": "foobar"}),
-				"Value":     Equal(float64(654321)),
+				"Value":     Ignore(),
 				"EventTime": Ignore(),
-				"Unit":      Equal(""),
-				"Type":      Equal(eventType),
-			}),
-			"firehose/origin.counterName.total": MatchAllFields(Fields{
-				"Name":      Ignore(),
-				"Labels":    Equal(map[string]string{"foundation": "foobar"}),
-				"Value":     Equal(float64(123456)),
-				"EventTime": Ignore(),
+				"StartTime": BeTemporally("~", eventTime),
 				"Unit":      Equal(""),
 				"Type":      Equal(eventType),
 			}),
 		}))
+		expectedTotals := []float64{10, 20, 25, 45}
+		for idx, total := range expectedTotals {
+			Expect(metrics[idx]).To(MatchFields(IgnoreExtras, Fields{
+				"Value":     Equal(total),
+				"EventTime": BeTemporally("~", eventTime.Add(time.Duration(idx+1)*time.Second)),
+			}))
+		}
 	})
 
 	It("returns error when envelope contains unhandled event type", func() {

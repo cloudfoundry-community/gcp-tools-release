@@ -151,7 +151,7 @@ func (ma *metricAdapter) buildTimeSeries(metrics []*messages.Metric) []*monitori
 				Type:   metricType,
 				Labels: metric.Labels,
 			},
-			Points: points(metric.Value, metric.EventTime),
+			Points: points(metric.Value, metric.EventTime, metric.StartTime),
 		}
 		timeSerieses = append(timeSerieses, &timeSeries)
 	}
@@ -172,13 +172,18 @@ func (ma *metricAdapter) CreateMetricDescriptor(metric *messages.Metric) error {
 		})
 	}
 
+	metricKind := metricpb.MetricDescriptor_GAUGE
+	if metric.IsCumulative() {
+		metricKind = metricpb.MetricDescriptor_CUMULATIVE
+	}
+
 	req := &monitoringpb.CreateMetricDescriptorRequest{
 		Name: projectName,
 		MetricDescriptor: &metricpb.MetricDescriptor{
 			Name:        metricName,
 			Type:        metricType,
 			Labels:      labelDescriptors,
-			MetricKind:  metricpb.MetricDescriptor_GAUGE,
+			MetricKind:  metricKind,
 			ValueType:   metricpb.MetricDescriptor_DOUBLE,
 			Unit:        metric.Unit,
 			Description: "stackdriver-nozzle created custom metric.",
@@ -213,7 +218,8 @@ func (ma *metricAdapter) fetchMetricDescriptorNames() error {
 }
 
 func (ma *metricAdapter) ensureMetricDescriptor(metric *messages.Metric) error {
-	if metric.Unit == "" {
+	// Only create descriptors explicitly if we need to provide a unit or override metric kind.
+	if metric.Unit == "" && !metric.IsCumulative() {
 		return nil
 	}
 
@@ -232,15 +238,11 @@ func (ma *metricAdapter) ensureMetricDescriptor(metric *messages.Metric) error {
 	return nil
 }
 
-func points(value float64, eventTime time.Time) []*monitoringpb.Point {
-	timeStamp := timestamp.Timestamp{
-		Seconds: eventTime.Unix(),
-		Nanos:   int32(eventTime.Nanosecond()),
-	}
+func points(value float64, eventTime, startTime time.Time) []*monitoringpb.Point {
 	point := &monitoringpb.Point{
 		Interval: &monitoringpb.TimeInterval{
-			EndTime:   &timeStamp,
-			StartTime: &timeStamp,
+			EndTime:   &timestamp.Timestamp{Seconds: eventTime.Unix(), Nanos: int32(eventTime.Nanosecond())},
+			StartTime: &timestamp.Timestamp{Seconds: startTime.Unix(), Nanos: int32(startTime.Nanosecond())},
 		},
 		Value: &monitoringpb.TypedValue{
 			Value: &monitoringpb.TypedValue_DoubleValue{
