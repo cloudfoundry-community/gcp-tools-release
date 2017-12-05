@@ -74,6 +74,8 @@ type Config struct {
 	DebugNozzle           bool   `envconfig:"debug_nozzle"`
 	// By default 'origin' label is prepended to metric name, however for runtime metrics (defined here) we add it as a metric label instead.
 	RuntimeMetricRegex string `envconfig:"runtime_metric_regex" default:"^(numCPUS|numGoRoutines|memoryStats\\..*)$"`
+	// Expire internal counter state if a given counter has not been seen for this many seconds.
+	CounterTrackerTTL int `envconfig:"counter_tracker_ttl" default:"130"`
 }
 
 func (c *Config) validate() error {

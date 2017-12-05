@@ -129,7 +129,10 @@ func (a *App) newMetricSink(ctx context.Context, metricAdapter stackdriver.Metri
 	metricBuffer := metrics_pipeline.NewAutoCulledMetricsBuffer(ctx, a.logger, time.Duration(a.c.MetricsBufferDuration)*time.Second, metricAdapter)
 	a.bufferEmpty = metricBuffer.IsEmpty
 
-	return nozzle.NewMetricSink(a.logger, a.c.MetricPathPrefix, a.labelMaker, metricBuffer, nozzle.NewUnitParser(), a.c.RuntimeMetricRegex)
+	ttl := time.Duration(a.c.CounterTrackerTTL) * time.Second
+	counterTracker := nozzle.NewCounterTracker(ctx, ttl, a.logger)
+
+	return nozzle.NewMetricSink(a.logger, a.c.MetricPathPrefix, a.labelMaker, metricBuffer, counterTracker, nozzle.NewUnitParser(), a.c.RuntimeMetricRegex)
 }
 
 func (a *App) newTelemetryReporter() telemetry.Reporter {
