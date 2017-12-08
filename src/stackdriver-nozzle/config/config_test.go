@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package config_test
+package config
 
 import (
 	"os"
@@ -24,7 +24,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"cloud.google.com/go/compute/metadata"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/config"
 )
 
 var _ = Describe("Config", func() {
@@ -42,7 +41,7 @@ var _ = Describe("Config", func() {
 	})
 
 	It("returns valid config from environment", func() {
-		c, err := config.NewConfig()
+		c, err := NewConfig()
 
 		Expect(err).To(BeNil())
 		Expect(c.APIEndpoint).To(Equal("https://api.example.com"))
@@ -68,10 +67,37 @@ var _ = Describe("Config", func() {
 
 	})
 
+	It("parses valid event filter JSON", func() {
+		data := []byte(`
+{
+	"blacklist": [{
+		"sink": "metric",
+		"type": "name",
+		"regexp": "^gorouter\\."
+	}, {
+		"sink": "all",
+		"type": "job",
+		"regexp": "jerrbb"
+	}],
+	"whitelist": [{
+		"sink": "log",
+		"type": "name",
+		"regexp": "^MetronAgent\\."
+	}]
+}`)
+		c, err := NewConfig()
+		Expect(err).To(BeNil())
+		Expect(c.parseEventFilterJSON(data)).To(BeNil())
+		Expect(c.MetricBlacklist.Len()).To(Equal(2))
+		Expect(c.MetricWhitelist.Len()).To(Equal(0))
+		Expect(c.LogBlacklist.Len()).To(Equal(1))
+		Expect(c.LogWhitelist.Len()).To(Equal(1))
+	})
+
 	DescribeTable("required values aren't empty", func(envName string) {
 		os.Setenv(envName, "")
 
-		_, err := config.NewConfig()
+		_, err := NewConfig()
 
 		Expect(err).NotTo(BeNil())
 		Expect(err.Error()).To(ContainSubstring(envName))
@@ -86,17 +112,17 @@ var _ = Describe("Config", func() {
 			os.Setenv("FIREHOSE_EVENTS_TO_STACKDRIVER_MONITORING", "")
 		})
 		It("is invalid with no events", func() {
-			_, err := config.NewConfig()
+			_, err := NewConfig()
 			Expect(err).To(HaveOccurred())
 		})
 		It("a single event for logging is valid", func() {
 			os.Setenv("FIREHOSE_EVENTS_TO_STACKDRIVER_LOGGING", "LogMessage")
-			_, err := config.NewConfig()
+			_, err := NewConfig()
 			Expect(err).NotTo(HaveOccurred())
 		})
 		It("a single event for monitoring is valid", func() {
 			os.Setenv("FIREHOSE_EVENTS_TO_STACKDRIVER_MONITORING", "ValueMetric")
-			_, err := config.NewConfig()
+			_, err := NewConfig()
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
