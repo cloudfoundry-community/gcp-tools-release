@@ -17,7 +17,14 @@
 package config
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"os"
+
 	"cloud.google.com/go/compute/metadata"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/nozzle"
 	"github.com/cloudfoundry/lager"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/pkg/errors"
@@ -36,6 +43,11 @@ func NewConfig() (*Config, error) {
 	}
 
 	err = c.ensureProjectID()
+	if err != nil {
+		return nil, err
+	}
+
+	err = c.maybeLoadFilterFile()
 	if err != nil {
 		return nil, err
 	}
@@ -74,6 +86,34 @@ type Config struct {
 	DebugNozzle           bool   `envconfig:"debug_nozzle"`
 	// By default 'origin' label is prepended to metric name, however for runtime metrics (defined here) we add it as a metric label instead.
 	RuntimeMetricRegex string `envconfig:"runtime_metric_regex" default:"^(numCPUS|numGoRoutines|memoryStats\\..*)$"`
+
+	// Event blacklists / whitelists are too complex to stuff into environment
+	// vars, so instead they are templated from the manifest YAML into a JSON
+	// file which is loaded by the nozzle. Nil pointers are empty blacklists.
+	EventFilterFile string `envconfig:"event_filter_file" default:""`
+	LogBlacklist    *nozzle.EventFilter
+	LogWhitelist    *nozzle.EventFilter
+	MetricBlacklist *nozzle.EventFilter
+	MetricWhitelist *nozzle.EventFilter
+}
+
+// An EventFilterRule specifies a filtering rule for firehose event.
+type EventFilterRule struct {
+	// Must be one of the types from nozzle/event_filter.go.
+	Type string `json:"type"`
+	// Must be either "metric", "log", or "all".
+	Sink string `json:"sink"`
+	// Must be a valid regular expression.
+	Regexp string `json:"regexp"`
+}
+
+func (r EventFilterRule) String() string {
+	return fmt.Sprintf("%s.%s matches %q", r.Sink, r.Type, r.Regexp)
+}
+
+type EventFilterJSON struct {
+	Blacklist []EventFilterRule `json:"blacklist,omitempty"`
+	Whitelist []EventFilterRule `json:"whitelist,omitempty"`
 }
 
 func (c *Config) validate() error {
@@ -104,6 +144,77 @@ func (c *Config) ensureProjectID() error {
 
 	c.ProjectID = projectID
 	return nil
+}
+
+func (c *Config) maybeLoadFilterFile() error {
+	if c.EventFilterFile == "" {
+		return nil
+	}
+	fh, err := os.Open(c.EventFilterFile)
+	if err != nil {
+		return err
+	}
+	data, err := ioutil.ReadAll(fh)
+	if err != nil {
+		return err
+	}
+	return c.parseEventFilterJSON(data)
+}
+
+func (c *Config) parseEventFilterJSON(data []byte) error {
+	if len(data) == 0 {
+		// Unmarshal expects there to be at least some JSON ;-)
+		return nil
+	}
+	filters := &EventFilterJSON{}
+	if err := json.Unmarshal(data, filters); err != nil {
+		return err
+	}
+	errs := loadFilterRules(filters.Blacklist, c.MetricBlacklist, c.LogBlacklist)
+	errs = append(errs, loadFilterRules(filters.Whitelist, c.MetricWhitelist, c.LogWhitelist)...)
+	if len(errs) == 0 {
+		return nil
+	}
+
+	b := bytes.NewBufferString("loading event filter file encountered the following errors:")
+	for _, err := range errs {
+		b.WriteString("\n\t- ")
+		b.WriteString(err.Error())
+	}
+	b.WriteByte('\n')
+	return errors.New(b.String())
+}
+
+var validSinks = map[string]bool{"metric": true, "log": true, "all": true}
+
+func loadFilterRules(list []EventFilterRule, metricFilter, logFilter *nozzle.EventFilter) []error {
+	if len(list) == 0 {
+		return nil
+	}
+	*metricFilter = nozzle.EventFilter{}
+	*logFilter = nozzle.EventFilter{}
+	errs := []error{}
+	for _, rule := range list {
+		if !validSinks[rule.Sink] {
+			errs = append(errs, fmt.Errorf("rule %s has invalid sink %q", rule, rule.Sink))
+			continue
+		}
+		if rule.Regexp == "" {
+			errs = append(errs, fmt.Errorf("rule %s has empty regexp", rule))
+			continue
+		}
+		if rule.Sink == "metric" || rule.Sink == "all" {
+			if err := metricFilter.Add(rule.Type, rule.Regexp); err != nil {
+				errs = append(errs, fmt.Errorf("adding rule %s to metric filter failed: %v", rule, err))
+			}
+		}
+		if rule.Sink == "log" || rule.Sink == "all" {
+			if err := logFilter.Add(rule.Type, rule.Regexp); err != nil {
+				errs = append(errs, fmt.Errorf("adding rule %s to log filter failed: %v", rule, err))
+			}
+		}
+	}
+	return errs
 }
 
 // If running on GCE, this will set the nozzle's ID, name, and zone to

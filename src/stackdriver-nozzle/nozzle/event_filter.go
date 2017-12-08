@@ -86,6 +86,12 @@ func (ef *EventFilter) Match(event *events.Envelope) bool {
 	return false
 }
 
+// Len returns the number of filters added to the EventFilter.
+// Useful for external testing.
+func (ef *EventFilter) Len() int {
+	return len(ef.matchers)
+}
+
 func getName(event *events.Envelope) string {
 	switch event.GetEventType() {
 	case events.Envelope_ValueMetric:
