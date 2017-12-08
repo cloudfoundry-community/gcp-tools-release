@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package config_test
+package config
 
 import (
 	"os"
@@ -24,8 +24,25 @@ import (
 	. "github.com/onsi/gomega"
 
 	"cloud.google.com/go/compute/metadata"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/config"
 )
+
+// Hoisted to top level because it's (even more) horrible inline.
+var validEventFilterJSON = []byte(`{
+	"blacklist": [{
+		"sink": "metric",
+		"type": "name",
+		"regexp": "^gorouter\\."
+	}, {
+		"sink": "all",
+		"type": "job",
+		"regexp": "jerrbb"
+	}],
+	"whitelist": [{
+		"sink": "log",
+		"type": "name",
+		"regexp": "^MetronAgent\\."
+	}]
+}`)
 
 var _ = Describe("Config", func() {
 
@@ -42,7 +59,7 @@ var _ = Describe("Config", func() {
 	})
 
 	It("returns valid config from environment", func() {
-		c, err := config.NewConfig()
+		c, err := NewConfig()
 
 		Expect(err).To(BeNil())
 		Expect(c.APIEndpoint).To(Equal("https://api.example.com"))
@@ -71,7 +88,7 @@ var _ = Describe("Config", func() {
 	DescribeTable("required values aren't empty", func(envName string) {
 		os.Setenv(envName, "")
 
-		_, err := config.NewConfig()
+		_, err := NewConfig()
 
 		Expect(err).NotTo(BeNil())
 		Expect(err.Error()).To(ContainSubstring(envName))
@@ -86,19 +103,65 @@ var _ = Describe("Config", func() {
 			os.Setenv("FIREHOSE_EVENTS_TO_STACKDRIVER_MONITORING", "")
 		})
 		It("is invalid with no events", func() {
-			_, err := config.NewConfig()
+			_, err := NewConfig()
 			Expect(err).To(HaveOccurred())
 		})
 		It("a single event for logging is valid", func() {
 			os.Setenv("FIREHOSE_EVENTS_TO_STACKDRIVER_LOGGING", "LogMessage")
-			_, err := config.NewConfig()
+			_, err := NewConfig()
 			Expect(err).NotTo(HaveOccurred())
 		})
 		It("a single event for monitoring is valid", func() {
 			os.Setenv("FIREHOSE_EVENTS_TO_STACKDRIVER_MONITORING", "ValueMetric")
-			_, err := config.NewConfig()
+			_, err := NewConfig()
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
 
+	DescribeTable("parses empty-but-valid JSON files without errors", func(data []byte) {
+		c, err := NewConfig()
+		Expect(err).To(BeNil())
+		Expect(c.parseEventFilterJSON(data)).To(BeNil())
+		Expect(c.MetricBlacklist.Len()).To(Equal(0))
+		Expect(c.MetricWhitelist.Len()).To(Equal(0))
+		Expect(c.LogBlacklist.Len()).To(Equal(0))
+		Expect(c.LogWhitelist.Len()).To(Equal(0))
+	},
+		Entry("handles nil", nil),
+		Entry("handles zero-length []byte", []byte{}),
+		Entry("parses JSON with no lists", []byte(`{}`)),
+		Entry("parses JSON with empty blacklist", []byte(`{"blacklist":[]}`)),
+		Entry("parses JSON with empty whitelist", []byte(`{"whitelist":[]}`)),
+		Entry("parses JSON with empty lists", []byte(`{"blacklist":[], "whitelist":[]}`)),
+		// This is due to the unmarshalling behaviour of encoding/json.
+		Entry("ignores invalid lists", []byte(`{"yellowlist":[{"sink": "foo", "type": "name", "regexp": ".*"}]}`)),
+	)
+
+	DescribeTable("chokes on invalid JSON files", func(data []byte) {
+		c, err := NewConfig()
+		Expect(err).To(BeNil())
+		Expect(c.parseEventFilterJSON(data)).NotTo(BeNil())
+		Expect(c.MetricBlacklist.Len()).To(Equal(0))
+		Expect(c.MetricWhitelist.Len()).To(Equal(0))
+		Expect(c.LogBlacklist.Len()).To(Equal(0))
+		Expect(c.LogWhitelist.Len()).To(Equal(0))
+	},
+		Entry("errors on malformed JSON", []byte(`{blacklist:[],}`)),
+		Entry("errors on invalid sinks", []byte(`{"blacklist":[{"sink": "foo", "type": "name", "regexp": ".*"}]}`)),
+		Entry("errors on invalid types", []byte(`{"blacklist":[{"sink": "log", "type": "foo", "regexp": ".*"}]}`)),
+		Entry("errors on empty regexps", []byte(`{"blacklist":[{"sink": "log", "type": "name", "regexp": ""}]}`)),
+		Entry("errors on missing sinks", []byte(`{"blacklist":[{"type": "name", "regexp": ".*"}]}`)),
+		Entry("errors on missing types", []byte(`{"blacklist":[{"sink": "log", "regexp": ".*"}]}`)),
+		Entry("errors on missing regexps", []byte(`{"blacklist":[{"sink": "log", "type": "name"}]}`)),
+	)
+
+	It("parses valid event filter JSON", func() {
+		c, err := NewConfig()
+		Expect(err).To(BeNil())
+		Expect(c.parseEventFilterJSON(validEventFilterJSON)).To(BeNil())
+		Expect(c.MetricBlacklist.Len()).To(Equal(2))
+		Expect(c.MetricWhitelist.Len()).To(Equal(0))
+		Expect(c.LogBlacklist.Len()).To(Equal(1))
+		Expect(c.LogWhitelist.Len()).To(Equal(1))
+	})
 })
