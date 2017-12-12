@@ -1,0 +1,9 @@
+{<% if_p('nozzle.event_filter.blacklist') do |blacklist| %>
+  "blacklist": [<% blacklist.each_with_index do |filter, index| %>
+    {"sink": "<%=j filter.sink %>", "type": "<%=j filter.type %>", "regexp": "<%=j filter.regexp %>"}<% if index+1 != blacklist.length %>,<% end %>
+  <% end %>]<% if_p('nozzle.event_filter.whitelist') %>,<% end %>
+  <% end %><% if_p('nozzle.event_filter.whitelist') do |whitelist| %>
+  "whitelist": [<% whitelist.each_with_index do |filter, index| %>
+    {"sink": "<%=j filter.sink %>", "type": "<%=j filter.type %>", "regexp": "<%=j filter.regexp %>"}<% if index+1 != whitelist.length %>,<% end %>
+  <% end %>]
+}
