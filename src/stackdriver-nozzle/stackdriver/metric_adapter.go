@@ -52,11 +52,8 @@ func init() {
 	timeSeriesCount = telemetry.NewCounter(telemetry.Nozzle, "metrics.timeseries.count")
 	timeSeriesErrs = telemetry.NewCounterMap(telemetry.Nozzle, "metrics.timeseries.errors", "error_type")
 
-	timeSeriesErrOutOfOrder = &telemetry.Counter{}
-	timeSeriesErrUnknown = &telemetry.Counter{}
-
-	timeSeriesErrs.Set("out_of_order", timeSeriesErrOutOfOrder)
-	timeSeriesErrs.Set("unknown", timeSeriesErrUnknown)
+	timeSeriesErrOutOfOrder = timeSeriesErrs.MustCounter("out_of_order")
+	timeSeriesErrUnknown = timeSeriesErrs.MustCounter("unknown")
 
 	firehoseEventsCount = telemetry.NewCounter(telemetry.Nozzle, "metrics.firehose_events.emitted.count")
 
