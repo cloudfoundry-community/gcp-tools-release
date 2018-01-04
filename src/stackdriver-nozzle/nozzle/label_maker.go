@@ -121,6 +121,11 @@ func (lm *labelMaker) getApplicationPath(envelope *events.Envelope) string {
 		return ""
 	}
 
+	return makePath(app)
+}
+
+// Separated out for use in tests.
+func makePath(app cloudfoundry.AppInfo) string {
 	path := pathMaker{}
 	path.addElement("org", app.OrgName)
 	path.addElement("space", app.SpaceName)
