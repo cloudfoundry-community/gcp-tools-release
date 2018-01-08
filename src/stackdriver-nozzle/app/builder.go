@@ -18,6 +18,7 @@ import (
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/version"
 	"github.com/cloudfoundry/lager"
+	"github.com/cloudfoundry/sonde-go/events"
 )
 
 type App struct {
@@ -100,6 +101,15 @@ func (a *App) newConsumer(ctx context.Context) (nozzle.Nozzle, error) {
 	filteredMetricSink, err := nozzle.NewFilterSink(metricEvents, mbl, mwl, metricSink)
 	if err != nil {
 		return nil, err
+	}
+
+	if a.c.EnableAppHttpMetrics {
+		httpSink := nozzle.NewHttpSink(a.logger, a.labelMaker)
+		filteredHttpSink, err := nozzle.NewFilterSink([]events.Envelope_EventType{events.Envelope_HttpStartStop}, nil, nil, httpSink)
+		if err != nil {
+			return nil, err
+		}
+		return nozzle.NewNozzle(a.logger, filteredLogSink, filteredMetricSink, filteredHttpSink), nil
 	}
 
 	return nozzle.NewNozzle(a.logger, filteredLogSink, filteredMetricSink), nil
