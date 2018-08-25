@@ -22,8 +22,13 @@ packages:
     cpu: 2
     dynamic_ip: 1
     static_ip: 0
-    singleton: true
+    singleton: false
     properties:
+      rlp:
+        address: (( .properties.rlp_address.value ))
+        ca_cert: (( .properties.rlp_cacert.value ))
+        cert: (( .properties.rlp_cert.value ))
+        key: (( .properties.rlp_key.value ))
       firehose:
         endpoint: (( .properties.firehose_endpoint.value ))
         events_to_stackdriver_logging: (( .properties.firehose_events_to_stackdriver_logging.value ))
@@ -55,6 +60,19 @@ forms:
   label: Nozzle Configuration
   description: Configure access properties for the Stackdriver Nozzle here
   properties:
+  - name: rlp_address
+    type: string
+    label: Reverse Log Proxy IP address and port (e.g., 10.100.25.2:8082)
+  - name: rlp_cacert
+    type: string
+    label: CA certificate of the Reverse Log Proxy
+  - name: rlp_cert
+    type: string
+    label: The TLS certificate for the Reverse Log Proxy, found in the Credentials > Syslog Adapter > Adapter Rlp Tls section of your PAS tile
+  - name: rlp_key
+    type: The TLS key for the Reverse Log Proxy, found in the Credentials > Syslog Adapter > Adapter Rlp Tls section of your PAS tile
+    label: Cloud Foundry API Endpoint
+
   - name: firehose_endpoint
     type: string
     label: Cloud Foundry API Endpoint
