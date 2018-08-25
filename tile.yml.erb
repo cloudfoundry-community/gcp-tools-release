@@ -22,7 +22,7 @@ packages:
     cpu: 2
     dynamic_ip: 1
     static_ip: 0
-    singleton: false
+    singleton: true
     properties:
       rlp:
         address: (( .properties.rlp_address.value ))
@@ -201,9 +201,9 @@ forms:
       type: string
       label: Regexp
       configurable: true
-    - name: kind
+    - name: type
       type: dropdown_select
-      label: Kind
+      label: Type
       configurable: true
       options:
       - name: job
@@ -295,9 +295,9 @@ forms:
       type: string
       label: Regexp
       configurable: true
-    - name: kind
+    - name: type
       type: dropdown_select
-      label: Kind
+      label: Type
       configurable: true
       options:
       - name: job
@@ -319,5 +319,5 @@ forms:
         label: Stackdriver Monitoring
 
 requires_product_versions:
- - name: cf
-   version: '>= 2.2.0'
+- name: cf
+  version: '~> 2.2.0'
