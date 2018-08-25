@@ -95,7 +95,6 @@ var _ = Describe("Config", func() {
 		Expect(err.Error()).To(ContainSubstring(envName))
 	},
 		Entry("FIREHOSE_ENDPOINT", "FIREHOSE_ENDPOINT"),
-		Entry("FIREHOSE_SUBSCRIPTION_ID", "FIREHOSE_SUBSCRIPTION_ID"),
 	)
 
 	Describe("event selection", func() {

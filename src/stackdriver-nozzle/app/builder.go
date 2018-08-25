@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	loggregator "code.cloudfoundry.org/go-loggregator"
 	cfclient "github.com/cloudfoundry-community/go-cfclient"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/config"
@@ -26,6 +27,7 @@ type App struct {
 	c           *config.Config
 	cfConfig    *cfclient.Config
 	cfClient    *cfclient.Client
+	rlpConfig   *cloudfoundry.ReverseLogProxyConfig
 	labelMaker  nozzle.LabelMaker
 	bufferEmpty func() bool
 }
@@ -52,17 +54,34 @@ func New(c *config.Config, logger lager.Logger) *App {
 	}
 	labelMaker := nozzle.NewLabelMaker(appInfoRepository, c.FoundationName)
 
+	tlsConfig, err := loggregator.NewEgressTLSConfig(
+		c.RLPCACertFile,
+		c.RLPCertFile,
+		c.RLPKeyFile,
+	)
+	if err != nil {
+		logger.Fatal("Could not create TLS config", err)
+	}
+
+	rlpConfig := &cloudfoundry.ReverseLogProxyConfig{
+		Address:           c.RLPAddress,
+		ShardID:           c.RLPShardID,
+		DeterministicName: c.RLPDeterministicName,
+		TLSConfig:         tlsConfig,
+	}
+
 	return &App{
 		logger:     logger,
 		c:          c,
 		cfConfig:   cfConfig,
 		cfClient:   cfClient,
+		rlpConfig:  rlpConfig,
 		labelMaker: labelMaker,
 	}
 }
 
-func (a *App) newProducer() cloudfoundry.Firehose {
-	return cloudfoundry.NewFirehose(a.cfConfig, a.cfClient, a.c.SubscriptionID)
+func (a *App) newProducer() cloudfoundry.ReverseLogProxy {
+	return cloudfoundry.NewReverseLogProxy(a.rlpConfig)
 }
 
 func (a *App) newConsumer(ctx context.Context) (nozzle.Nozzle, error) {
