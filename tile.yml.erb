@@ -24,11 +24,11 @@ packages:
     static_ip: 0
     singleton: true
     properties:
-      rlp:
-        address: (( .properties.rlp_address.value ))
-        ca_cert: (( .properties.rlp_cacert.value ))
-        cert: (( .properties.rlp_cert.value ))
-        key: (( .properties.rlp_key.value ))
+     # rlp:
+     #   address: (( .properties.rlp_address.value ))
+     #   ca_cert: (( .properties.rlp_cacert.value ))
+     #   cert: (( .properties.rlp_cert.value ))
+     #   key: (( .properties.rlp_key.value ))
       firehose:
         endpoint: (( .properties.firehose_endpoint.value ))
         events_to_stackdriver_logging: (( .properties.firehose_events_to_stackdriver_logging.value ))
@@ -60,18 +60,18 @@ forms:
   label: Nozzle Configuration
   description: Configure access properties for the Stackdriver Nozzle here
   properties:
-  - name: rlp_address
-    type: string
-    label: Reverse Log Proxy IP address and port
-  - name: rlp_cacert
-    type: string
-    label: CA certificate of the Reverse Log Proxy
-  - name: rlp_cert
-    type: string
-    label: The TLS certificate for the Reverse Log Proxy, found in the Adapter Rlp Tls section of your PAS tile credentials section
-  - name: rlp_key
-    type: The TLS key for the Reverse Log Proxy, found in the same place as the cert
-    label: Cloud Foundry API Endpoint
+ # - name: rlp_address
+ #   type: string
+ #   label: Reverse Log Proxy IP address and port
+ # - name: rlp_cacert
+ #   type: string
+ #   label: CA certificate of the Reverse Log Proxy
+ # - name: rlp_cert
+ #   type: string
+ #   label: The TLS certificate for the Reverse Log Proxy, found in the Adapter Rlp Tls section of your PAS tile credentials section
+ # - name: rlp_key
+ #   type: The TLS key for the Reverse Log Proxy, found in the same place as the cert
+ #   label: Cloud Foundry API Endpoint
   - name: firehose_endpoint
     type: string
     label: Cloud Foundry API Endpoint
