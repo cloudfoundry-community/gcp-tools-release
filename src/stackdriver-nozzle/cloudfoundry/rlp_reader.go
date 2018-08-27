@@ -7,6 +7,7 @@ import (
 	loggregator "code.cloudfoundry.org/go-loggregator"
 	"code.cloudfoundry.org/go-loggregator/rpc/loggregator_v2"
 	"code.cloudfoundry.org/loggregator/plumbing/conversion"
+	"github.com/cloudfoundry/lager"
 	"github.com/cloudfoundry/sonde-go/events"
 )
 
@@ -15,6 +16,27 @@ type ReverseLogProxyConfig struct {
 	ShardID           string
 	DeterministicName string
 	TLSConfig         *tls.Config
+}
+
+// Wraps lager.Logger and adds methods to satisfy loggregator's logger type
+type loggerWrapper struct {
+	lager.Logger
+}
+
+func (l loggerWrapper) Panicf(s string, d ...interface{}) {
+	data := lager.Data{}
+	for i, j := range d {
+		data[string(i)] = j
+	}
+	l.Fatal(s, nil, data)
+}
+
+func (l loggerWrapper) Printf(s string, d ...interface{}) {
+	data := lager.Data{}
+	for i, j := range d {
+		data[string(i)] = j
+	}
+	l.Info(s, data)
 }
 
 type ReverseLogProxyHandler interface {
@@ -58,13 +80,12 @@ var allSelectors = []*loggregator_v2.Selector{
 	},
 }
 
-func NewReverseLogProxy(config *ReverseLogProxyConfig) ReverseLogProxy {
-	//TODO(evanbrown) Add WithEnvelopeStreamBuffer and alerter to track dropped envelopes
+func NewReverseLogProxy(config *ReverseLogProxyConfig, logger lager.Logger) ReverseLogProxy {
+	loggerWrapper := loggerWrapper{logger}
 	streamConnector := loggregator.NewEnvelopeStreamConnector(
 		config.Address,
 		config.TLSConfig,
-		//TODO(evanbrown): Do we want the stream logger?
-		//loggregator.WithEnvelopeStreamLogger(loggr),
+		loggregator.WithEnvelopeStreamLogger(loggerWrapper),
 	)
 
 	rx := streamConnector.Stream(context.Background(), &loggregator_v2.EgressBatchRequest{

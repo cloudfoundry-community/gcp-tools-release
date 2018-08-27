@@ -81,7 +81,7 @@ func New(c *config.Config, logger lager.Logger) *App {
 }
 
 func (a *App) newProducer() cloudfoundry.ReverseLogProxy {
-	return cloudfoundry.NewReverseLogProxy(a.rlpConfig)
+	return cloudfoundry.NewReverseLogProxy(a.rlpConfig, a.logger)
 }
 
 func (a *App) newConsumer(ctx context.Context) (nozzle.Nozzle, error) {
