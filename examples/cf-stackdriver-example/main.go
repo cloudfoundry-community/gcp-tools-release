@@ -128,7 +128,7 @@ func main() {
 	ctx := context.Background()
 	errorsClient = HandleError(errors.NewClient(ctx, projectID, "cf-stackdriver-example", "0.0.1", true)).(*errors.Client)
 
-	datastoreClient, err := datastore.NewClient(context.Background(), projectID)
+	_, err := datastore.NewClient(context.Background(), projectID)
 	if err != nil {
 		panic("error connecting to the Google Cloud Datastore. Does this project have an App Engine App? see: https://cloud.google.com/datastore/docs/activate")
 	}
