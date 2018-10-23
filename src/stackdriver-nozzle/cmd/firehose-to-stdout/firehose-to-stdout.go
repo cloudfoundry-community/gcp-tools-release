@@ -19,8 +19,9 @@ package main
 import (
 	"github.com/cloudfoundry-community/go-cfclient"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
-	"github.com/cloudfoundry/sonde-go/events"
 	"os"
+	"os/signal"
+	"errors"
 )
 
 func main() {
@@ -35,19 +36,39 @@ func main() {
 		Password:          password,
 		SkipSslValidation: skipSSLValidation}
 
-	cfClient := cfclient.NewClient(cfConfig)
-
-	client := cloudfoundry.NewFirehose(cfConfig, cfClient, nil)
-
-	err := client.StartListening(&StdOut{})
+	cfClient, err := cfclient.NewClient(cfConfig)
 	if err != nil {
 		panic(err)
 	}
-}
 
-type StdOut struct{}
+	client := cloudfoundry.NewFirehose(cfConfig, cfClient, "")
 
-func (so *StdOut) HandleEvent(envelope *events.Envelope) error {
-	println(envelope.String())
-	return nil
+	firehose, errorhose := client.Connect()
+	if firehose == nil {
+		panic(errors.New("firehose was nil"))
+	} else if errorhose == nil {
+		panic(errors.New("errorhose was nil"))
+	}
+
+	exitSignal := make(chan os.Signal, 1)
+	signal.Notify(exitSignal, os.Interrupt)
+
+	for {
+		select {
+			case envelope := <- firehose:
+				if envelope == nil {
+					os.Stderr.WriteString("Received nil envelope")
+				} else {
+					println(envelope.String())
+				}
+			case err := <- errorhose:
+				if err == nil {
+					os.Stderr.WriteString("Received nil envelope")
+				} else {
+					os.Stderr.WriteString(err.Error())
+				}
+			case <- exitSignal:
+				os.Exit(0)
+		}
+	}
 }

@@ -32,7 +32,7 @@ const cmdName = "firehose-rate-script"
 var counter *telemetry.Counter
 
 func init() {
-	counter := telemetry.NewCounter(telemetry.MetricPrefix(cmdName), "message_count")
+	counter = telemetry.NewCounter(telemetry.MetricPrefix(cmdName), "message_count")
 }
 
 func main() {
@@ -62,8 +62,7 @@ func main() {
 
 	messages, _ := client.Connect()
 
-	period := time.Duration(1 * time.Second)
-	for _ = range messages {
+	for range messages {
 		counter.Increment()
 	}
 }

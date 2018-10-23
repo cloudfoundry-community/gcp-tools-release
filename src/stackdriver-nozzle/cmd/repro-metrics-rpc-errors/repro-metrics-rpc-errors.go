@@ -67,7 +67,7 @@ func postMetric(m *monitoring.MetricClient, ctx context.Context, name string, va
 		Name: projectName,
 		TimeSeries: []*monitoringpb.TimeSeries{
 			{
-				Metric: &google_api.Metric{
+				Metric: &metric.Metric{
 					Type:   metricType,
 					Labels: labels,
 				},
