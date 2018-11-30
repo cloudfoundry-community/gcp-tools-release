@@ -17,10 +17,14 @@ bosh2 create-release --force \
   --name="stackdriver-tools" \
   --version "${VERSION}" \
   --tarball="${RELEASE_PATH}"
+echo "Exiting with $?"
 
 export TILE_NAME="stackdriver-nozzle-custom"
 export TILE_LABEL="Stackdriver Nozzle (custom build)"
 erb tile.yml.erb > tile.yml
 tile build "${VERSION}"
+echo "Exiting with $?"
+
 TILE="product/${TILE_NAME}-${VERSION}.pivotal"
 sha256sum "${PWD}/${TILE}"
+echo done
