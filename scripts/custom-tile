@@ -50,9 +50,20 @@ ENV VERSION="${VERSION}" GOPATH="${TMP_GOPATH}" PATH="${PATH}:${TMP_GOPATH}/bin"
 COPY . .
 RUN scripts/build-custom-tile-docker.sh
 __DOCKERFILE__
+
+  # remove previous custom tiles
+  rm -f stackdriver-nozzle-custom*
+
+  # remove previous tile containers and image (safely)
+  docker ps -a | awk '{ if ($2 == "tile") print $1 }' | xargs -r docker rm
+  docker images | cut -d ' ' -f 1 | grep -x tile | xargs -r docker rmi
+
   docker build -t tile . && rm Dockerfile
-  docker run --rm -v "${PWD}:/mnt" tile cp "/tmp/stackdriver-tools/product/stackdriver-nozzle-custom-${VERSION}.pivotal" /mnt
-  docker rmi tile
+
+  TILEDIR=/tmp/stackdriver-tools/product/
+  TILE=stackdriver-nozzle-custom-${VERSION}.pivotal
+
+  docker run -v "${PWD}:/mnt" tile sh -c "cp ${TILEDIR}/${TILE} /mnt && chown ${UID} /mnt/${TILE}"
 }
 
 clean() {
