@@ -30,11 +30,11 @@ packages:
     properties:
       rlp:
         address: (( .properties.rlp_address.value ))
-        ca_cert: (( .properties.rlp_cacert.value ))
-        cert: (( .properties.rlp_cert.value ))
-        key: (( .properties.rlp_key.value ))
+        ca_cert: (( $ops_manager.ca_certificate ))
+        cert: (( .properties.rlp_creds.cert_pem ))
+        key: (( .properties.rlp_creds.private_key_pem ))
       firehose:
-        endpoint: (( .properties.firehose_endpoint.value ))
+        endpoint: (( $runtime.system_api_url ))
         events_to_stackdriver_logging: (( .properties.firehose_events_to_stackdriver_logging.value ))
         events_to_stackdriver_monitoring: (( .properties.firehose_events_to_stackdriver_monitoring.value ))
         username: (( .properties.firehose_username.value || ..cf.uaa.stackdriver_nozzle_credentials.identity ))
@@ -66,20 +66,16 @@ forms:
   properties:
   - name: rlp_address
     type: string
-    label: Reverse Log Proxy IP address and port
-  - name: rlp_cacert
-    type: text
-    label: CA certificate of the Reverse Log Proxy
-  - name: rlp_cert
-    type: text
-    label: The TLS certificate for the Reverse Log Proxy, found in the Adapter Rlp Tls section of your PAS tile credentials section
-  - name: rlp_key
-    type:  text
-    label: The TLS key for the Reverse Log Proxy, found in the same place as the cert
-  - name: firehose_endpoint
-    type: string
-    label: Cloud Foundry API Endpoint
-    default: (( $runtime.system_api_url ))
+    label: Reverse Log Proxy host and port
+    description: Address and port of the reverse log proxy. The default value works if BOSH DNS is enabled. Otherwise, set this to the IP address of a reverse log proxy VM.
+    default: loggregator-trafficcontroller.service.cf.internal:8082
+  - name: rlp_creds
+    type: rsa_cert_credentials
+    label: rlp_creds
+    configurable: false
+    default:
+      domains:
+        - 'stackdriver-nozzle'
   - name: firehose_events_to_stackdriver_logging
     type: string
     default: HttpStartStop,LogMessage,Error
