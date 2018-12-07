@@ -8,7 +8,7 @@ import (
 )
 
 func ParseEvents(names []string) ([]events.Envelope_EventType, error) {
-	events := []events.Envelope_EventType{}
+	var events []events.Envelope_EventType
 
 	for _, name := range names {
 		if name == "" {
@@ -37,7 +37,7 @@ type invalidEvent struct {
 }
 
 func (ie *invalidEvent) Error() string {
-	eventNames := []string{}
+	var eventNames []string
 	for _, name := range events.Envelope_EventType_name {
 		eventNames = append(eventNames, name)
 	}

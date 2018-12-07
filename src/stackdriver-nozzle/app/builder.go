@@ -100,7 +100,7 @@ func (a *App) newConsumer(ctx context.Context) (nozzle.Nozzle, error) {
 		return nil, err
 	}
 
-	sinks := []nozzle.Sink{}
+	var sinks []nozzle.Sink
 	logAdapter := a.newLogAdapter()
 	filteredLogSink, err := nozzle.NewFilterSink(logEvents, lbl, lwl,
 		nozzle.NewLogSink(a.labelMaker, logAdapter, a.c.NewlineToken))
@@ -199,7 +199,7 @@ func (a *App) buildEventFilters() (
 	monitoringWhitelist *nozzle.EventFilter,
 	err error,
 ) {
-	errs := []error{}
+	var errs []error
 	if len(a.c.EventFilterJSON.Blacklist) > 0 {
 		loggingBlacklist = &nozzle.EventFilter{}
 		monitoringBlacklist = &nozzle.EventFilter{}
@@ -224,7 +224,7 @@ func (a *App) buildEventFilters() (
 }
 
 func loadFilterRules(list []config.EventFilterRule, loggingFilter, monitoringFilter *nozzle.EventFilter) []error {
-	errs := []error{}
+	var errs []error
 	for _, rule := range list {
 		if !validSinks[rule.Sink] {
 			errs = append(errs, fmt.Errorf("rule %s has invalid sink %q", rule, rule.Sink))

@@ -32,7 +32,7 @@ func NewRouter(metricAdapter stackdriver.MetricAdapter, metricEvents []events.En
 }
 
 func (r *router) PostMetrics(metrics []*messages.Metric) {
-	metricEvents := []*messages.Metric{}
+	var metricEvents []*messages.Metric
 	for i := range metrics {
 		if r.metricEvents[metrics[i].Type] {
 			metricEvents = append(metricEvents, metrics[i])

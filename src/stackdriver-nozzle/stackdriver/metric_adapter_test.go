@@ -113,7 +113,7 @@ var _ = Describe("MetricAdapter", func() {
 
 	DescribeTable("correct batch size",
 		func(t postMetrics) {
-			metrics := []*messages.Metric{}
+			var metrics []*messages.Metric
 			for i := 0; i < t.metricCount; i++ {
 				metrics = append(metrics, &messages.Metric{
 					Labels: map[string]string{"Name": strconv.Itoa(i)},

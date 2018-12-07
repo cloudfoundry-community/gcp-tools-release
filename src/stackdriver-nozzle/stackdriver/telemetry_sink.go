@@ -104,7 +104,7 @@ func (ts *telemetrySink) Init(registeredSeries []*expvar.KeyValue) {
 			continue
 		}
 
-		labels := []*labelpb.LabelDescriptor{}
+		var labels []*labelpb.LabelDescriptor
 		for name := range ts.labels {
 			labels = append(labels, &labelpb.LabelDescriptor{Key: name, ValueType: labelpb.LabelDescriptor_STRING})
 		}
@@ -180,7 +180,7 @@ func (ts *telemetrySink) timeSeries(metricType string, interval *monitoringpb.Ti
 	case *telemetry.Counter:
 		return []*monitoringpb.TimeSeries{ts.timeSeriesInt(metricType, interval, ts.labels, data.Value())}
 	case *telemetry.CounterMap:
-		series := []*monitoringpb.TimeSeries{}
+		var series []*monitoringpb.TimeSeries
 		data.Do(func(value expvar.KeyValue) {
 			if intVal, ok := value.Value.(*telemetry.Counter); ok {
 				labels := merge(ts.labels, intVal.Labels)
