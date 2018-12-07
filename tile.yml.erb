@@ -20,6 +20,8 @@ packages:
     templates:
     - name: stackdriver-nozzle
       release: stackdriver-tools
+      consumes:
+        reverse_log_proxy: {from: reverse_log_proxy, deployment: "(( ..cf.deployment_name ))"}
     memory: 512
     ephemeral_disk: 4096
     cpu: 2
@@ -29,7 +31,6 @@ packages:
     instances: 1
     properties:
       rlp:
-        address: (( .properties.rlp_address.value ))
         ca_cert: (( $ops_manager.ca_certificate ))
         cert: (( .properties.rlp_creds.cert_pem ))
         key: (( .properties.rlp_creds.private_key_pem ))
@@ -64,11 +65,6 @@ forms:
   label: Nozzle Configuration
   description: Configure access properties for the Stackdriver Nozzle here
   properties:
-  - name: rlp_address
-    type: string
-    label: Reverse Log Proxy host and port
-    description: Address and port of the reverse log proxy. The default value works if BOSH DNS is enabled. Otherwise, set this to the IP address of a reverse log proxy VM.
-    default: loggregator-trafficcontroller.service.cf.internal:8082
   - name: rlp_creds
     type: rsa_cert_credentials
     label: rlp_creds

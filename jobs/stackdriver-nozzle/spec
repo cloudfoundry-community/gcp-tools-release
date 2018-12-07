@@ -12,6 +12,10 @@ packages:
   - stackdriver-nozzle
   - common
 
+consumes:
+  - name: reverse_log_proxy
+    type: reverse_log_proxy
+
 properties:
   rlp.address:
     description: Address and port of the Reverse Log Proxy
