@@ -25,7 +25,7 @@ import (
 var _ = Describe("EventFilter", func() {
 	var (
 		subject *EventFilter
-		value   float64 = 0.0
+		value           = 0.0
 		counter uint64  = 0
 		unit            = "ms"
 	)

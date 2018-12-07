@@ -54,11 +54,11 @@ func (ls *logSink) Receive(envelope *events.Envelope) {
 }
 
 func structToMap(obj interface{}) map[string]interface{} {
-	payload_json, _ := json.Marshal(obj)
-	var unmarshaled_map map[string]interface{}
-	json.Unmarshal(payload_json, &unmarshaled_map)
+	payloadJson, _ := json.Marshal(obj)
+	var unmarshaledMap map[string]interface{}
+	json.Unmarshal(payloadJson, &unmarshaledMap)
 
-	return unmarshaled_map
+	return unmarshaledMap
 }
 
 func (ls *logSink) parseEnvelope(envelope *events.Envelope) messages.Log {

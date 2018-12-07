@@ -4,6 +4,7 @@ package stackdriver
 import (
 	"context"
 	"fmt"
+
 	"cloud.google.com/go/logging"
 )
 
@@ -24,7 +25,7 @@ func (lg *Logger) Publish(message Message) {
 
 
 	if err := lg.client.Close() ; err != nil {
-		fmt.Errorf("Failed to close client: %v", err)
+		fmt.Errorf("failed to close client: %v", err)
 	}
 }
 

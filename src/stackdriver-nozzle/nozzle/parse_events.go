@@ -8,7 +8,7 @@ import (
 )
 
 func ParseEvents(names []string) ([]events.Envelope_EventType, error) {
-	var events []events.Envelope_EventType
+	var parsedEvents []events.Envelope_EventType
 
 	for _, name := range names {
 		if name == "" {
@@ -19,10 +19,10 @@ func ParseEvents(names []string) ([]events.Envelope_EventType, error) {
 		if err != nil {
 			return nil, err
 		}
-		events = append(events, event)
+		parsedEvents = append(parsedEvents, event)
 	}
 
-	return events, nil
+	return parsedEvents, nil
 }
 
 func parseEventName(name string) (events.Envelope_EventType, error) {
