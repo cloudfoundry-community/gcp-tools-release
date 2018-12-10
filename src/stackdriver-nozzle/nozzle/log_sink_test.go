@@ -17,6 +17,7 @@
 package nozzle
 
 import (
+	"github.com/cloudfoundry/lager"
 	"time"
 
 	"cloud.google.com/go/logging"
@@ -41,7 +42,7 @@ var _ = Describe("LogSink", func() {
 		logAdapter = &mocks.LogAdapter{}
 
 		newlineToken := ""
-		subject = NewLogSink(labelMaker, logAdapter, newlineToken)
+		subject = NewLogSink(labelMaker, logAdapter, newlineToken, lager.NewLogger("test"))
 	})
 
 	It("passes fields through to the adapter", func() {
@@ -310,7 +311,7 @@ var _ = Describe("LogSink", func() {
 		})
 
 		It("translates newline tokens when one is passed in", func() {
-			subject = NewLogSink(labelMaker, logAdapter, "∴")
+			subject = NewLogSink(labelMaker, logAdapter, "∴", lager.NewLogger("test"))
 
 			eventType := events.Envelope_LogMessage
 			messageType := events.LogMessage_OUT

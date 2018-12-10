@@ -26,5 +26,6 @@ func (la *LogAdapter) PostLog(log *messages.Log) {
 	la.PostedLogs = append(la.PostedLogs, *log)
 }
 
-func (la *LogAdapter) Flush() {
+func (la *LogAdapter) Flush() error {
+	return nil
 }

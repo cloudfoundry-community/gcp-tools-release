@@ -25,7 +25,7 @@ func (lg *Logger) Publish(message Message) {
 
 
 	if err := lg.client.Close() ; err != nil {
-		fmt.Errorf("failed to close client: %v", err)
+		fmt.Println(fmt.Errorf("failed to close client: %v", err))
 	}
 }
 
