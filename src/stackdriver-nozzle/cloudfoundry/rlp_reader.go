@@ -4,10 +4,10 @@ import (
 	"context"
 	"crypto/tls"
 
-	loggregator "code.cloudfoundry.org/go-loggregator"
+	"code.cloudfoundry.org/go-loggregator"
 	"code.cloudfoundry.org/go-loggregator/rpc/loggregator_v2"
+	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/loggregator/plumbing/conversion"
-	"github.com/cloudfoundry/lager"
 	"github.com/cloudfoundry/sonde-go/events"
 )
 

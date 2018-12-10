@@ -32,12 +32,11 @@ go run ./clear-metric-descriptors.go --help
 package main
 
 import (
-	"fmt"
-	"os"
-
 	"bufio"
 	"flag"
+	"fmt"
 	"log"
+	"os"
 	"strings"
 
 	"cloud.google.com/go/monitoring/apiv3"

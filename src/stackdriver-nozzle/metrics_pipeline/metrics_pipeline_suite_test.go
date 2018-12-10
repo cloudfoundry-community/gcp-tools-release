@@ -1,10 +1,10 @@
 package metrics_pipeline
 
 import (
+	"testing"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"testing"
 )
 
 func TestMetricsBuffer(t *testing.T) {

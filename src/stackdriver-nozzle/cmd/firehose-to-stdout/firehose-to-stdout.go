@@ -17,11 +17,12 @@
 package main
 
 import (
-	"github.com/cloudfoundry-community/go-cfclient"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
+	"errors"
 	"os"
 	"os/signal"
-	"errors"
+
+	"github.com/cloudfoundry-community/go-cfclient"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
 )
 
 func main() {
@@ -55,20 +56,20 @@ func main() {
 
 	for {
 		select {
-			case envelope := <- firehose:
-				if envelope == nil {
-					os.Stderr.WriteString("Received nil envelope")
-				} else {
-					println(envelope.String())
-				}
-			case err := <- errorhose:
-				if err == nil {
-					os.Stderr.WriteString("Received nil envelope")
-				} else {
-					os.Stderr.WriteString(err.Error())
-				}
-			case <- exitSignal:
-				os.Exit(0)
+		case envelope := <-firehose:
+			if envelope == nil {
+				os.Stderr.WriteString("Received nil envelope")
+			} else {
+				println(envelope.String())
+			}
+		case err := <-errorhose:
+			if err == nil {
+				os.Stderr.WriteString("Received nil envelope")
+			} else {
+				os.Stderr.WriteString(err.Error())
+			}
+		case <-exitSignal:
+			os.Exit(0)
 		}
 	}
 }

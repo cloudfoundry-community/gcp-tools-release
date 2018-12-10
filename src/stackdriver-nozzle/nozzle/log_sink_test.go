@@ -17,11 +17,10 @@
 package nozzle
 
 import (
-	"github.com/cloudfoundry/lager"
+	"code.cloudfoundry.org/lager"
 	"time"
 
 	"cloud.google.com/go/logging"
-
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"
 	"github.com/cloudfoundry/sonde-go/events"
 	. "github.com/onsi/ginkgo"

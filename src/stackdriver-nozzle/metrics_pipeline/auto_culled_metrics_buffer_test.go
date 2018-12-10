@@ -18,9 +18,8 @@ package metrics_pipeline
 
 import (
 	"context"
-	"time"
-
 	"sort"
+	"time"
 
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/mocks"

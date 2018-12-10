@@ -9,13 +9,12 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
-
 	"time"
 
 	"cloud.google.com/go/logging"
+	"code.cloudfoundry.org/lager"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/version"
-	"github.com/cloudfoundry/lager"
 )
 
 func Run(ctx context.Context, a *App) {

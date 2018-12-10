@@ -20,10 +20,10 @@ import (
 	"os"
 	"time"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/cloudfoundry-community/go-cfclient"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry"
-	"github.com/cloudfoundry/lager"
 	"golang.org/x/net/context"
 )
 

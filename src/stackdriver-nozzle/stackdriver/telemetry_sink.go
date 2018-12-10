@@ -22,13 +22,13 @@ import (
 	"time"
 
 	"cloud.google.com/go/compute/metadata"
+	"code.cloudfoundry.org/lager"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry"
-	"github.com/cloudfoundry/lager"
 	"github.com/golang/protobuf/ptypes/timestamp"
-	labelpb "google.golang.org/genproto/googleapis/api/label"
-	metricpb "google.golang.org/genproto/googleapis/api/metric"
+	"google.golang.org/genproto/googleapis/api/label"
+	"google.golang.org/genproto/googleapis/api/metric"
 	"google.golang.org/genproto/googleapis/api/monitoredres"
-	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
+	"google.golang.org/genproto/googleapis/monitoring/v3"
 )
 
 type telemetrySink struct {
@@ -83,7 +83,7 @@ func NewTelemetrySink(logger lager.Logger, client MetricClient, projectID, subsc
 }
 
 func (ts *telemetrySink) Init(registeredSeries []*expvar.KeyValue) {
-	req := &monitoringpb.ListMetricDescriptorsRequest{
+	req := &monitoring.ListMetricDescriptorsRequest{
 		Name:   ts.projectPath,
 		Filter: fmt.Sprintf(`metric.type = starts_with("stackdriver-nozzle")`),
 	}
@@ -104,26 +104,26 @@ func (ts *telemetrySink) Init(registeredSeries []*expvar.KeyValue) {
 			continue
 		}
 
-		var labels []*labelpb.LabelDescriptor
+		var labels []*label.LabelDescriptor
 		for name := range ts.labels {
-			labels = append(labels, &labelpb.LabelDescriptor{Key: name, ValueType: labelpb.LabelDescriptor_STRING})
+			labels = append(labels, &label.LabelDescriptor{Key: name, ValueType: label.LabelDescriptor_STRING})
 		}
 
 		if mapVal, ok := series.Value.(*telemetry.CounterMap); ok {
 			for _, l := range mapVal.LabelKeys {
-				labels = append(labels, &labelpb.LabelDescriptor{Key: l, ValueType: labelpb.LabelDescriptor_STRING})
+				labels = append(labels, &label.LabelDescriptor{Key: l, ValueType: label.LabelDescriptor_STRING})
 			}
 		}
 
-		req := &monitoringpb.CreateMetricDescriptorRequest{
+		req := &monitoring.CreateMetricDescriptorRequest{
 			Name: ts.projectPath,
-			MetricDescriptor: &metricpb.MetricDescriptor{
+			MetricDescriptor: &metric.MetricDescriptor{
 				DisplayName: series.Key,
 				Name:        name,
 				Type:        ts.metricDescriptorType(series.Key),
 				Labels:      labels,
-				MetricKind:  metricpb.MetricDescriptor_CUMULATIVE,
-				ValueType:   metricpb.MetricDescriptor_INT64,
+				MetricKind:  metric.MetricDescriptor_CUMULATIVE,
+				ValueType:   metric.MetricDescriptor_INT64,
 				Description: "stackdriver-nozzle created custom metric.",
 			},
 		}
@@ -143,8 +143,8 @@ func (ts *telemetrySink) metricDescriptorType(key string) string {
 
 const maxTimeSeries = 200
 
-func (ts *telemetrySink) newRequest() *monitoringpb.CreateTimeSeriesRequest {
-	return &monitoringpb.CreateTimeSeriesRequest{
+func (ts *telemetrySink) newRequest() *monitoring.CreateTimeSeriesRequest {
+	return &monitoring.CreateTimeSeriesRequest{
 		Name: ts.projectPath,
 	}
 }
@@ -152,7 +152,7 @@ func (ts *telemetrySink) newRequest() *monitoringpb.CreateTimeSeriesRequest {
 func (ts *telemetrySink) Report(report []*expvar.KeyValue) {
 	req := ts.newRequest()
 
-	interval := &monitoringpb.TimeInterval{
+	interval := &monitoring.TimeInterval{
 		StartTime: ts.startTime,
 		EndTime:   now(),
 	}
@@ -175,12 +175,12 @@ func (ts *telemetrySink) Report(report []*expvar.KeyValue) {
 	}
 }
 
-func (ts *telemetrySink) timeSeries(metricType string, interval *monitoringpb.TimeInterval, val *expvar.KeyValue) []*monitoringpb.TimeSeries {
+func (ts *telemetrySink) timeSeries(metricType string, interval *monitoring.TimeInterval, val *expvar.KeyValue) []*monitoring.TimeSeries {
 	switch data := val.Value.(type) {
 	case *telemetry.Counter:
-		return []*monitoringpb.TimeSeries{ts.timeSeriesInt(metricType, interval, ts.labels, data.Value())}
+		return []*monitoring.TimeSeries{ts.timeSeriesInt(metricType, interval, ts.labels, data.Value())}
 	case *telemetry.CounterMap:
-		var series []*monitoringpb.TimeSeries
+		var series []*monitoring.TimeSeries
 		data.Do(func(value expvar.KeyValue) {
 			if intVal, ok := value.Value.(*telemetry.Counter); ok {
 				labels := merge(ts.labels, intVal.Labels)
@@ -206,18 +206,18 @@ func merge(a, b map[string]string) map[string]string {
 	return dest
 }
 
-func (ts *telemetrySink) timeSeriesInt(metricType string, interval *monitoringpb.TimeInterval, labels map[string]string, value int64) *monitoringpb.TimeSeries {
-	return &monitoringpb.TimeSeries{
-		MetricKind: metricpb.MetricDescriptor_CUMULATIVE,
-		ValueType:  metricpb.MetricDescriptor_INT64,
-		Metric: &metricpb.Metric{
+func (ts *telemetrySink) timeSeriesInt(metricType string, interval *monitoring.TimeInterval, labels map[string]string, value int64) *monitoring.TimeSeries {
+	return &monitoring.TimeSeries{
+		MetricKind: metric.MetricDescriptor_CUMULATIVE,
+		ValueType:  metric.MetricDescriptor_INT64,
+		Metric: &metric.Metric{
 			Type:   metricType,
 			Labels: labels,
 		},
-		Points: []*monitoringpb.Point{{
+		Points: []*monitoring.Point{{
 			Interval: interval,
-			Value: &monitoringpb.TypedValue{
-				Value: &monitoringpb.TypedValue_Int64Value{Int64Value: value},
+			Value: &monitoring.TypedValue{
+				Value: &monitoring.TypedValue_Int64Value{Int64Value: value},
 			},
 		}},
 		Resource: ts.resource,

@@ -9,8 +9,9 @@ import (
 	"strings"
 	"time"
 
-	loggregator "code.cloudfoundry.org/go-loggregator"
-	cfclient "github.com/cloudfoundry-community/go-cfclient"
+	"code.cloudfoundry.org/go-loggregator"
+	"code.cloudfoundry.org/lager"
+	"github.com/cloudfoundry-community/go-cfclient"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/config"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/metrics_pipeline"
@@ -18,7 +19,6 @@ import (
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/version"
-	"github.com/cloudfoundry/lager"
 	"github.com/cloudfoundry/sonde-go/events"
 )
 
@@ -193,11 +193,11 @@ func (a *App) newTelemetryReporter() telemetry.Reporter {
 var validSinks = map[string]bool{"monitoring": true, "logging": true, "all": true}
 
 func (a *App) buildEventFilters() (
-	loggingBlacklist *nozzle.EventFilter,
-	loggingWhitelist *nozzle.EventFilter,
-	monitoringBlacklist *nozzle.EventFilter,
-	monitoringWhitelist *nozzle.EventFilter,
-	err error,
+		loggingBlacklist *nozzle.EventFilter,
+		loggingWhitelist *nozzle.EventFilter,
+		monitoringBlacklist *nozzle.EventFilter,
+		monitoringWhitelist *nozzle.EventFilter,
+		err error,
 ) {
 	var errs []error
 	if len(a.c.EventFilterJSON.Blacklist) > 0 {

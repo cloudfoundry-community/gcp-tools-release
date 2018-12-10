@@ -18,11 +18,10 @@ package nozzle
 
 import (
 	"encoding/json"
-	"github.com/cloudfoundry/lager"
-
 	"strings"
 
 	"cloud.google.com/go/logging"
+	"code.cloudfoundry.org/lager"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
 	"github.com/cloudfoundry/sonde-go/events"

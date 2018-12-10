@@ -1,6 +1,5 @@
 package stackdriver
 
-
 import (
 	"context"
 	"fmt"
@@ -23,8 +22,7 @@ type Message struct {
 func (lg *Logger) Publish(message Message) {
 	lg.client.Logger("stackdriver-spinner-logs").Log(logging.Entry{Payload: message})
 
-
-	if err := lg.client.Close() ; err != nil {
+	if err := lg.client.Close(); err != nil {
 		fmt.Println(fmt.Errorf("failed to close client: %v", err))
 	}
 }
