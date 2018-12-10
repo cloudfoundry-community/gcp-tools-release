@@ -14,7 +14,9 @@ var _ = Describe("Emitter", func() {
 		mockWriter := fakes.Writer{}
 
 		writer := cloudfoundry.NewEmitter(&mockWriter, 1, 0)
-		Expect(writer.Emit("something")).To(BeNil())
+		count, err := writer.Emit("something")
+		Expect(count).To(Equal(1))
+		Expect(err).To(BeNil())
 
 		Expect(mockWriter.Writes).To(HaveLen(1))
 		Expect(mockWriter.Writes[0]).To(ContainSubstring("something"))
@@ -24,7 +26,9 @@ var _ = Describe("Emitter", func() {
 		mockWriter := fakes.Writer{}
 
 		writer := cloudfoundry.NewEmitter(&mockWriter, 10, 0)
-		Expect(writer.Emit("something")).To(BeNil())
+		count, err := writer.Emit("something")
+		Expect(count).To(Equal(10))
+		Expect(err).To(BeNil())
 
 		Expect(mockWriter.Writes).To(HaveLen(10))
 	})
