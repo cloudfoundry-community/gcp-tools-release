@@ -42,7 +42,7 @@ func init() {
 
 type LogAdapter interface {
 	PostLog(*messages.Log)
-	Flush()
+	Flush() error
 }
 
 // NewLogAdapter returns a LogAdapter that can post to Stackdriver Logging.
@@ -94,6 +94,6 @@ func (s *logAdapter) PostLog(log *messages.Log) {
 	s.sdLogger.Log(entry)
 }
 
-func (s *logAdapter) Flush() {
-	s.sdLogger.Flush()
+func (s *logAdapter) Flush() error {
+	return s.sdLogger.Flush()
 }

@@ -103,7 +103,7 @@ func (a *App) newConsumer(ctx context.Context) (nozzle.Nozzle, error) {
 	var sinks []nozzle.Sink
 	logAdapter := a.newLogAdapter()
 	filteredLogSink, err := nozzle.NewFilterSink(logEvents, lbl, lwl,
-		nozzle.NewLogSink(a.labelMaker, logAdapter, a.c.NewlineToken))
+		nozzle.NewLogSink(a.labelMaker, logAdapter, a.c.NewlineToken, a.logger))
 	if err != nil {
 		return nil, err
 	}

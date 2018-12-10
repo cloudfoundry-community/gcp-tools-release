@@ -167,8 +167,12 @@ func (c *Config) maybeLoadFilterFile() error {
 	if err != nil {
 		return err
 	}
-	defer fh.Close()
-	return c.parseEventFilterJSON(fh)
+
+	if err := c.parseEventFilterJSON(fh); err != nil {
+		return err
+	}
+
+	return fh.Close()
 }
 
 func (c *Config) parseEventFilterJSON(r io.Reader) error {

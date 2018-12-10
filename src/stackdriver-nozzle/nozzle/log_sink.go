@@ -18,6 +18,7 @@ package nozzle
 
 import (
 	"encoding/json"
+	"github.com/cloudfoundry/lager"
 
 	"strings"
 
@@ -28,11 +29,12 @@ import (
 )
 
 // NewLogSink returns a Sink that can receive sonde Events, translate them and send them to a stackdriver.LogAdapter
-func NewLogSink(labelMaker LabelMaker, logAdapter stackdriver.LogAdapter, newlineToken string) Sink {
+func NewLogSink(labelMaker LabelMaker, logAdapter stackdriver.LogAdapter, newlineToken string, logger lager.Logger) Sink {
 	return &logSink{
 		labelMaker:   labelMaker,
 		logAdapter:   logAdapter,
 		newlineToken: newlineToken,
+		logger:       logger,
 	}
 }
 
@@ -40,6 +42,7 @@ type logSink struct {
 	labelMaker   LabelMaker
 	logAdapter   stackdriver.LogAdapter
 	newlineToken string
+	logger       lager.Logger
 }
 
 func (ls *logSink) Receive(envelope *events.Envelope) {
@@ -53,16 +56,22 @@ func (ls *logSink) Receive(envelope *events.Envelope) {
 	ls.logAdapter.PostLog(&log)
 }
 
-func structToMap(obj interface{}) map[string]interface{} {
+func structToMap(obj interface{}) (map[string]interface{}, error) {
 	payloadJson, _ := json.Marshal(obj)
 	var unmarshaledMap map[string]interface{}
-	json.Unmarshal(payloadJson, &unmarshaledMap)
+	if err := json.Unmarshal(payloadJson, &unmarshaledMap); err != nil {
+		return nil, err
+	}
 
-	return unmarshaledMap
+	return unmarshaledMap, nil
 }
 
 func (ls *logSink) parseEnvelope(envelope *events.Envelope) messages.Log {
-	payload := structToMap(envelope)
+	payload, err := structToMap(envelope) // better hope that's json
+	if err != nil {
+		ls.logger.Error("error parsing envelope", err)
+	}
+
 	payload["eventType"] = envelope.GetEventType().String()
 
 	severity := logging.Default
@@ -75,8 +84,10 @@ func (ls *logSink) parseEnvelope(envelope *events.Envelope) messages.Log {
 	switch envelope.GetEventType() {
 	case events.Envelope_LogMessage:
 		logMessage := envelope.GetLogMessage()
-		logMessageMap := structToMap(logMessage)
-		if logMessageMap != nil {
+		logMessageMap, err := structToMap(logMessage)
+		if err != nil {
+			ls.logger.Error("error parsing logMessage", err)
+		} else {
 			message := ls.parseMessage(logMessage.GetMessage())
 
 			// This is snake_cased to match the field in the protobuf. The other
@@ -96,8 +107,10 @@ func (ls *logSink) parseEnvelope(envelope *events.Envelope) messages.Log {
 		severity = logging.Error
 	case events.Envelope_HttpStartStop:
 		httpStartStop := envelope.GetHttpStartStop()
-		httpStartStopMap := structToMap(httpStartStop)
-		if httpStartStopMap != nil {
+		httpStartStopMap, err := structToMap(httpStartStop)
+		if err != nil {
+			ls.logger.Error("error parsing httpStartStop", err)
+		} else {
 			httpStartStopMap["method"] = httpStartStop.GetMethod().String()
 			httpStartStopMap["peerType"] = httpStartStop.GetPeerType().String()
 			httpStartStopMap["requestId"] = formatUUID(httpStartStop.GetRequestId())

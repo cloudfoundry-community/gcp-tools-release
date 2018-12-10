@@ -37,7 +37,9 @@ func (m *MetricAdapter) PostMetrics(metrics []*messages.Metric) {
 	m.PostMetricsCount += 1
 
 	if m.PostMetricsFn != nil {
-		m.PostMetricsFn(metrics)
+		if err := m.PostMetricsFn(metrics); err != nil {
+			panic(err)
+		}
 	}
 
 	m.PostedMetrics = append(m.PostedMetrics, metrics...)
