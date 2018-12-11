@@ -2,8 +2,8 @@
 
 check_param() {
   local name=$1
-  local value=$(eval echo '$'$name)
-  if [ "$value" == 'replace-me' ] || [ "$value" == '' ]; then
+  local value=$(eval echo '$'${name})
+  if [[ "${value}" == 'replace-me' ]] || [[ "${value}" == '' ]]; then
     echo "environment variable $name must be set"
     exit 1
   fi
@@ -26,9 +26,9 @@ function on_exit {
   for i in "${on_exit_items[@]}"
   do
     for try in $(seq 0 9); do
-      sleep $try
+      sleep ${try}
       echo "Running cleanup command $i (try: ${try})"
-        eval $i || continue
+        eval ${i} || continue
       break
     done
   done
@@ -37,7 +37,7 @@ function on_exit {
 function add_on_exit {
   local n=${#on_exit_items[@]}
   on_exit_items=("${on_exit_items[@]}" "$*")
-  if [[ $n -eq 0 ]]; then
+  if [[ ${n} -eq 0 ]]; then
     trap on_exit EXIT
   fi
 }

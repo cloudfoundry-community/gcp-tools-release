@@ -19,4 +19,4 @@ gcloud auth activate-service-account --key-file $HOME/.config/gcloud/application
 gcloud config set project ${project_id}
 
 echo "Making semver public"
-gsutil acl ch -u allUsers:R gs://$bucket_name/$semver_key
+gsutil acl ch -u allUsers:R gs://${bucket_name}/${semver_key}

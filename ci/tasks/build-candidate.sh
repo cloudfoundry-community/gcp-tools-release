@@ -23,7 +23,7 @@ pushd stackdriver-tools
   bosh2 create-release --name=${release_name} --version=${semver} --tarball=${image_path} --force --sha2
 popd
 
-echo -n $(sha256sum $image_path | awk '{print $1}') > $image_path.sha256
+echo -n $(sha256sum ${image_path} | awk '{print $1}') > ${image_path}.sha256
 
 mv ${image_path} candidate/
 mv ${image_path}.sha256 candidate/

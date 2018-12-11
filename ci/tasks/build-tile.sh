@@ -31,4 +31,4 @@ echo "${image_path}"
 
 echo "exposing tile"
 mv stackdriver-tools/product/*.pivotal ${output_path}
-echo -n $(sha256sum $output_path | awk '{print $1}') > $output_path.sha256
+echo -n $(sha256sum ${output_path} | awk '{print $1}') > ${output_path}.sha256

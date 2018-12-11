@@ -125,7 +125,7 @@ var _ = Describe("HttpSink", func() {
 		subject = NewHttpSink(&mocks.MockLogger{}, labelMaker)
 	})
 
-	It("increments counters for reqeusts", func() {
+	It("increments counters for requests", func() {
 		receive := func(es []*events.Envelope) {
 			for _, e := range es {
 				subject.Receive(e)

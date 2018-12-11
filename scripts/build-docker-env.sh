@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /usr/bin/env bash
 
 # This script is run from inside the tile-generator container.  It installs the
 # dependencies necessary for building the nozzle.  Most of the contents have
@@ -17,7 +17,7 @@ go get github.com/golang/lint/golint
 
 ## Install Bosh 2 CLI
 BOSH2_VERSION=2.0.48
-BOSH2_SHA1="c807f1938494f4280d65ebbdc863eda3f883d72e"
+BOSH2_SHA1=c807f1938494f4280d65ebbdc863eda3f883d72e
 
 wget -q -c "https://s3.amazonaws.com/bosh-cli-artifacts/bosh-cli-${BOSH2_VERSION}-linux-amd64"
 echo "${BOSH2_SHA1}	bosh-cli-${BOSH2_VERSION}-linux-amd64" > "bosh2_${BOSH2_VERSION}_SHA1SUM"

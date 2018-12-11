@@ -42,7 +42,7 @@ func Run(ctx context.Context, a *App) {
 
 	blockTillInterrupt()
 
-	a.logger.Info("app", lager.Data{"cleanup": "exit recieved, attempting to flush buffers"})
+	a.logger.Info("app", lager.Data{"cleanup": "exit received, attempting to flush buffers"})
 	if err := consumer.Stop(); err != nil {
 		a.logger.Error("nozzle.stop", err)
 	}

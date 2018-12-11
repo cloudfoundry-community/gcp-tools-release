@@ -36,7 +36,7 @@ func main() {
 		The error we are seeing is this:
 		rpc error: code = 13 desc = stream terminated by RST_STREAM with error code: 2
 
-		This piece of code is an attempt to repro the error without any firehose/nozzle interaction
+		This piece of code is an attempt to reproduce the error without any firehose/nozzle interaction
 	*/
 	ctx := context.Background()
 	metricClient, err := monitoring.NewMetricClient(ctx, option.WithScopes("https://www.googleapis.com/auth/monitoring.write"))
@@ -45,7 +45,7 @@ func main() {
 	}
 	t := time.NewTicker(100 * time.Millisecond)
 	errCount := 0
-	for _ = range t.C {
+	for range t.C {
 		println(fmt.Sprintf("tick: %v, %v", errCount, time.Now().Second()))
 		err := postMetric(metricClient, ctx, "andres_test", float64(time.Now().Second()), map[string]string{})
 		if err != nil {
