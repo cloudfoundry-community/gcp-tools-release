@@ -60,10 +60,10 @@ __DOCKERFILE__
 
   docker build -t tile . && rm Dockerfile
 
-  TILEDIR=/tmp/stackdriver-tools/product/
+  TILE_DIR=/tmp/stackdriver-tools/product/
   TILE=stackdriver-nozzle-custom-${VERSION}.pivotal
 
-  docker run -v "${PWD}:/mnt" tile sh -c "cp ${TILEDIR}/${TILE} /mnt && chown ${UID} /mnt/${TILE}"
+  docker run -v "${PWD}:/mnt" tile sh -c "cp ${TILE_DIR}/${TILE} /mnt && chown ${UID} /mnt/${TILE}"
 }
 
 clean() {
