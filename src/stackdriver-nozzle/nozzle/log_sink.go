@@ -56,9 +56,13 @@ func (ls *logSink) Receive(envelope *events.Envelope) {
 }
 
 func structToMap(obj interface{}) (map[string]interface{}, error) {
-	payloadJson, _ := json.Marshal(obj)
+	payloadJSON, err := json.Marshal(obj)
+	if err != nil {
+		return nil, err
+	}
+
 	var unmarshaledMap map[string]interface{}
-	if err := json.Unmarshal(payloadJson, &unmarshaledMap); err != nil {
+	if err := json.Unmarshal(payloadJSON, &unmarshaledMap); err != nil {
 		return nil, err
 	}
 

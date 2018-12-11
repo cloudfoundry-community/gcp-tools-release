@@ -1,4 +1,4 @@
-package metrics_pipeline
+package metricspipeline
 
 import (
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/messages"

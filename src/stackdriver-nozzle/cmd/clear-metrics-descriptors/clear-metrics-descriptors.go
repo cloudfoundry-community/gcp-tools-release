@@ -93,7 +93,10 @@ func main() {
 	fmt.Printf("Delete %d metric descriptors from project?\n", len(names))
 	fmt.Printf("This is irreversible and will result in data loss: (y/n) ")
 	reader := bufio.NewReader(os.Stdin)
-	confirm, _ := reader.ReadString('\n')
+	confirm, err := reader.ReadString('\n')
+	if err != nil {
+		log.Fatalf("could not read stdin: %v", err)
+	}
 
 	if strings.TrimSpace(strings.ToLower(confirm)) != "y" {
 		os.Exit(0)

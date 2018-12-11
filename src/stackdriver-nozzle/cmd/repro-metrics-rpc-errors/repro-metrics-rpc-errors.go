@@ -47,9 +47,9 @@ func main() {
 	errCount := 0
 	for range t.C {
 		println(fmt.Sprintf("tick: %v, %v", errCount, time.Now().Second()))
-		err := postMetric(metricClient, ctx, "andres_test", float64(time.Now().Second()), map[string]string{})
+		err := postMetric(ctx, metricClient, "andres_test", float64(time.Now().Second()), map[string]string{})
 		if err != nil {
-			errCount += 1
+			errCount++
 			fmt.Printf("A wild error #%v appeared: %v\n", errCount, err)
 		}
 		if errCount > 10 {
@@ -58,7 +58,7 @@ func main() {
 	}
 }
 
-func postMetric(m *monitoring.MetricClient, ctx context.Context, name string, value float64, labels map[string]string) error {
+func postMetric(ctx context.Context, m *monitoring.MetricClient, name string, value float64, labels map[string]string) error {
 	projectID := os.Getenv("GCP_PROJECT_ID")
 	projectName := fmt.Sprintf("projects/%s", projectID)
 	metricType := path.Join("custom.googleapis.com", name)

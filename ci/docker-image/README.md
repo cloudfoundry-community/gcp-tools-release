@@ -18,4 +18,4 @@ fly -t (your concourse) set-pipeline -p docker-image -c pipeline.yml -l credenti
 
 ## Validation
 
-The test suite in [system_tests](./system_tests) is used to verify the image contains the needed tools.
+The test suite in [system_tests](systemtests) is used to verify the image contains the needed tools.

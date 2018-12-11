@@ -27,8 +27,8 @@ func (lg *Logger) Publish(message Message) {
 	}
 }
 
-func NewLogger(projectId string) (*Logger, error) {
-	client, err := logging.NewClient(context.Background(), projectId)
+func NewLogger(projectID string) (*Logger, error) {
+	client, err := logging.NewClient(context.Background(), projectID)
 	if err != nil {
 		return nil, fmt.Errorf("creating client: %v", err)
 	}

@@ -21,8 +21,8 @@ type Metric struct {
 	Value     float64
 	IntValue  int64
 	EventTime time.Time
-	StartTime time.Time `json:"-"`
-	Unit      string // TODO Should this be "1" if it's empty?
+	StartTime time.Time                 `json:"-"`
+	Unit      string                    // TODO Should this be "1" if it's empty?
 	Type      events.Envelope_EventType `json:"-"`
 }
 

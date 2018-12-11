@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	_ "net/http/pprof"
 	"strings"
 	"time"
 
@@ -14,7 +13,7 @@ import (
 	"github.com/cloudfoundry-community/go-cfclient"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/cloudfoundry"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/config"
-	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/metrics_pipeline"
+	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/metricspipeline"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/nozzle"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/stackdriver"
 	"github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/telemetry"
@@ -112,7 +111,7 @@ func (a *App) newConsumer(ctx context.Context) (nozzle.Nozzle, error) {
 	// Destination for metrics
 	metricAdapter := a.newMetricAdapter()
 	// Routes metrics to Stackdriver Logging/Stackdriver Monitoring
-	metricRouter := metrics_pipeline.NewRouter(metricAdapter, metricEvents, logAdapter, logEvents)
+	metricRouter := metricspipeline.NewRouter(metricAdapter, metricEvents, logAdapter, logEvents)
 	// Handles and translates Firehose events. Performs buffering/culling.
 	metricSink, err := a.newMetricSink(ctx, metricRouter)
 	if err != nil {
@@ -125,13 +124,13 @@ func (a *App) newConsumer(ctx context.Context) (nozzle.Nozzle, error) {
 	}
 	sinks = append(sinks, filteredMetricSink)
 
-	if a.c.EnableAppHttpMetrics {
-		httpSink := nozzle.NewHttpSink(a.logger, a.labelMaker)
-		filteredHttpSink, err := nozzle.NewFilterSink([]events.Envelope_EventType{events.Envelope_HttpStartStop}, nil, nil, httpSink)
+	if a.c.EnableAppHTTPMetrics {
+		httpSink := nozzle.NewHTTPSink(a.logger, a.labelMaker)
+		filteredHTTPSink, err := nozzle.NewFilterSink([]events.Envelope_EventType{events.Envelope_HttpStartStop}, nil, nil, httpSink)
 		if err != nil {
 			return nil, err
 		}
-		sinks = append(sinks, filteredHttpSink)
+		sinks = append(sinks, filteredHTTPSink)
 	}
 
 	return nozzle.NewNozzle(a.logger, sinks...), nil
@@ -167,7 +166,7 @@ func (a *App) newMetricAdapter() stackdriver.MetricAdapter {
 }
 
 func (a *App) newMetricSink(ctx context.Context, metricAdapter stackdriver.MetricAdapter) (nozzle.Sink, error) {
-	metricBuffer := metrics_pipeline.NewAutoCulledMetricsBuffer(ctx, a.logger, time.Duration(a.c.MetricsBufferDuration)*time.Second, metricAdapter)
+	metricBuffer := metricspipeline.NewAutoCulledMetricsBuffer(ctx, a.logger, time.Duration(a.c.MetricsBufferDuration)*time.Second, metricAdapter)
 	a.bufferEmpty = metricBuffer.IsEmpty
 
 	var counterTracker *nozzle.CounterTracker
@@ -193,11 +192,11 @@ func (a *App) newTelemetryReporter() telemetry.Reporter {
 var validSinks = map[string]bool{"monitoring": true, "logging": true, "all": true}
 
 func (a *App) buildEventFilters() (
-		loggingBlacklist *nozzle.EventFilter,
-		loggingWhitelist *nozzle.EventFilter,
-		monitoringBlacklist *nozzle.EventFilter,
-		monitoringWhitelist *nozzle.EventFilter,
-		err error,
+	loggingBlacklist *nozzle.EventFilter,
+	loggingWhitelist *nozzle.EventFilter,
+	monitoringBlacklist *nozzle.EventFilter,
+	monitoringWhitelist *nozzle.EventFilter,
+	err error,
 ) {
 	var errs []error
 	if len(a.c.EventFilterJSON.Blacklist) > 0 {

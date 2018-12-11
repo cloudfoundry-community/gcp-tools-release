@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	logId = "cf_logs"
+	logID = "cf_logs"
 )
 
 var (
@@ -58,7 +58,7 @@ func NewLogAdapter(projectID string, batchCount int, batchDuration time.Duration
 		errs <- err
 	}
 
-	sdLogger := loggingClient.Logger(logId,
+	sdLogger := loggingClient.Logger(logID,
 		logging.EntryCountThreshold(batchCount),
 		logging.DelayThreshold(batchDuration),
 		logging.ConcurrentWriteLimit(inFlight),

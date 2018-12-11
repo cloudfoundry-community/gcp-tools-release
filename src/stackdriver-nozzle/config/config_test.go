@@ -71,7 +71,7 @@ var _ = Describe("Config", func() {
 			localFn   func() (string, error)
 			gceFn     func() (string, error)
 		}{
-			{c.NozzleId, func() (string, error) { return "local-nozzle", nil }, metadata.InstanceID},
+			{c.NozzleID, func() (string, error) { return "local-nozzle", nil }, metadata.InstanceID},
 			{c.NozzleName, func() (string, error) { return "local-nozzle", nil }, metadata.InstanceName},
 			{c.NozzleZone, func() (string, error) { return "local-nozzle", nil }, metadata.Zone},
 		}

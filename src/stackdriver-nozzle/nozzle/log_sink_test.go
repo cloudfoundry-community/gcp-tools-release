@@ -99,14 +99,14 @@ var _ = Describe("LogSink", func() {
 			peerType := events.PeerType_Client
 			var low uint64 = 0x7243cc580bc17af4
 			var high uint64 = 0x79d4c3b2020e67a5
-			requestId := events.UUID{
+			requestID := events.UUID{
 				Low:  &low,
 				High: &high,
 			}
 			event := events.HttpStartStop{
 				Method:    &method,
 				PeerType:  &peerType,
-				RequestId: &requestId,
+				RequestId: &requestID,
 			}
 
 			eventType := events.Envelope_HttpStartStop
@@ -193,7 +193,7 @@ var _ = Describe("LogSink", func() {
 		})
 
 		It("handles ContainerMetric", func() {
-			applicationId := "abcd"
+			applicationID := "abcd"
 			cpuPercentage := float64(20)
 			memoryBytes := uint64(111)
 			diskBytes := uint64(222)
@@ -201,7 +201,7 @@ var _ = Describe("LogSink", func() {
 			diskBytesQuota := uint64(444)
 
 			containerMetric := events.ContainerMetric{
-				ApplicationId:    &applicationId,
+				ApplicationId:    &applicationID,
 				CpuPercentage:    &cpuPercentage,
 				DiskBytes:        &diskBytes,
 				MemoryBytes:      &memoryBytes,
@@ -224,7 +224,7 @@ var _ = Describe("LogSink", func() {
 			payload := (postedLog.Payload).(map[string]interface{})
 			Expect(payload).To(HaveKeyWithValue("eventType", "ContainerMetric"))
 			Expect(payload).To(HaveKeyWithValue("containerMetric", map[string]interface{}{
-				"applicationId":    applicationId,
+				"applicationId":    applicationID,
 				"cpuPercentage":    cpuPercentage,
 				"diskBytes":        float64(diskBytes),
 				"memoryBytes":      float64(memoryBytes),

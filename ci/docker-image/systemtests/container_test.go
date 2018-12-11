@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package systemTests
+package systemtests
 
 import (
 	"fmt"

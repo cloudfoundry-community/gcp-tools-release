@@ -92,8 +92,6 @@ func (ma *metricAdapter) PostMetrics(metrics []*messages.Metric) {
 			ma.logger.Error("metricAdapter.PostMetrics", err, lager.Data{"info": "Unexpected Error", "request": request})
 		}
 	}
-
-	return
 }
 
 func (ma *metricAdapter) buildTimeSeries(metrics []*messages.Metric) []*monitoring.TimeSeries {

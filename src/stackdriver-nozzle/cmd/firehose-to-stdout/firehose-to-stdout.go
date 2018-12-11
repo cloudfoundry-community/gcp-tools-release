@@ -18,6 +18,7 @@ package main
 
 import (
 	"errors"
+	"log"
 	"os"
 	"os/signal"
 
@@ -54,19 +55,21 @@ func main() {
 	exitSignal := make(chan os.Signal, 1)
 	signal.Notify(exitSignal, os.Interrupt)
 
+	errorLog := log.New(os.Stderr, "", 0)
+
 	for {
 		select {
 		case envelope := <-firehose:
 			if envelope == nil {
-				os.Stderr.WriteString("Received nil envelope")
+				errorLog.Println("received nil envelope")
 			} else {
 				println(envelope.String())
 			}
 		case err := <-errorhose:
 			if err == nil {
-				os.Stderr.WriteString("Received nil envelope")
+				errorLog.Println("received nil envelope")
 			} else {
-				os.Stderr.WriteString(err.Error())
+				errorLog.Println(err)
 			}
 		case <-exitSignal:
 			os.Exit(0)

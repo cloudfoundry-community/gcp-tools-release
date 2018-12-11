@@ -15,7 +15,10 @@ type LoggingProbe struct {
 }
 
 func (lp *LoggingProbe) Find(start time.Time, needle string, count int) (int, error) {
-	timeBytes, _ := start.MarshalText()
+	timeBytes, err := start.MarshalText()
+	if err != nil {
+		return 0, fmt.Errorf("problem marshaling text: %v", err)
+	}
 
 	it := lp.client.Entries(context.Background(), logadmin.Filter(fmt.Sprintf("jsonPayload.eventType=\"LogMessage\" timestamp>=\"%s\" jsonPayload.message:\"%s\"", timeBytes, needle)))
 
@@ -42,8 +45,8 @@ func (lp *LoggingProbe) Find(start time.Time, needle string, count int) (int, er
 	return len(entries), nil
 }
 
-func NewLoggingProbe(projectId string) (*LoggingProbe, error) {
-	client, err := logadmin.NewClient(context.Background(), projectId)
+func NewLoggingProbe(projectID string) (*LoggingProbe, error) {
+	client, err := logadmin.NewClient(context.Background(), projectID)
 	if err != nil {
 		return nil, fmt.Errorf("creating client: %v", err)
 	}

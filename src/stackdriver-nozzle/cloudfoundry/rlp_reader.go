@@ -81,11 +81,11 @@ var allSelectors = []*loggregator_v2.Selector{
 }
 
 func NewReverseLogProxy(config *ReverseLogProxyConfig, logger lager.Logger) ReverseLogProxy {
-	loggerWrapper := loggerWrapper{logger}
+	wrapper := loggerWrapper{Logger: logger}
 	streamConnector := loggregator.NewEnvelopeStreamConnector(
 		config.Address,
 		config.TLSConfig,
-		loggregator.WithEnvelopeStreamLogger(loggerWrapper),
+		loggregator.WithEnvelopeStreamLogger(wrapper),
 	)
 
 	rx := streamConnector.Stream(context.Background(), &loggregator_v2.EgressBatchRequest{
@@ -93,7 +93,7 @@ func NewReverseLogProxy(config *ReverseLogProxyConfig, logger lager.Logger) Reve
 		DeterministicName: config.DeterministicName,
 		Selectors:         allSelectors,
 	})
-	return reverseLogProxy{config, rx}
+	return reverseLogProxy{config: config, envelopeStream: rx}
 }
 
 func (c reverseLogProxy) Connect() (<-chan *events.Envelope, <-chan error) {

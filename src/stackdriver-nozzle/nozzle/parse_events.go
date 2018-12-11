@@ -26,8 +26,8 @@ func ParseEvents(names []string) ([]events.Envelope_EventType, error) {
 }
 
 func parseEventName(name string) (events.Envelope_EventType, error) {
-	if eventId, ok := events.Envelope_EventType_value[name]; ok {
-		return events.Envelope_EventType(eventId), nil
+	if eventID, ok := events.Envelope_EventType_value[name]; ok {
+		return events.Envelope_EventType(eventID), nil
 	}
 	return events.Envelope_Error, &invalidEvent{name: name}
 }

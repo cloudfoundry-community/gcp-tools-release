@@ -52,11 +52,11 @@ func detectMonitoredResource() (res *monitoredres.MonitoredResource) {
 	res = &monitoredres.MonitoredResource{Type: "global"}
 
 	if metadata.OnGCE() {
-		projectId, err := metadata.ProjectID()
+		projectID, err := metadata.ProjectID()
 		if err != nil {
 			return
 		}
-		instanceId, err := metadata.InstanceID()
+		instanceID, err := metadata.InstanceID()
 		if err != nil {
 			return
 		}
@@ -66,18 +66,18 @@ func detectMonitoredResource() (res *monitoredres.MonitoredResource) {
 		}
 
 		res.Type = "gce_instance"
-		res.Labels = map[string]string{"project_id": projectId, "instance_id": instanceId, "zone": zone}
+		res.Labels = map[string]string{"project_id": projectID, "instance_id": instanceID, "zone": zone}
 	}
 	return
 }
 
 // NewTelemetrySink provides a telemetry.Sink that writes metrics to Stackdriver Monitoring
-func NewTelemetrySink(logger lager.Logger, client MetricClient, projectID, subscriptionId, foundation string) telemetry.Sink {
+func NewTelemetrySink(logger lager.Logger, client MetricClient, projectID, subscriptionID, foundation string) telemetry.Sink {
 	return &telemetrySink{
 		logger:      logger,
 		client:      client,
 		projectPath: fmt.Sprintf("projects/%s", projectID),
-		labels:      map[string]string{"subscription_id": subscriptionId, "foundation": foundation},
+		labels:      map[string]string{"subscription_id": subscriptionID, "foundation": foundation},
 		startTime:   now(),
 		resource:    detectMonitoredResource()}
 }
