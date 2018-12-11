@@ -12,7 +12,7 @@
 
 [[constraint]]
   name = "code.cloudfoundry.org/go-loggregator"
-  version = "7.2.0"
+  version = "^7.0.0"
 
 [[constraint]]
   name = "code.cloudfoundry.org/loggregator"
@@ -28,7 +28,7 @@
 
 [[constraint]]
   name = "github.com/cloudfoundry/noaa"
-  version = "2.1.0"
+  version = "^2.0.0"
 
 [[constraint]]
   branch = "master"
@@ -36,23 +36,23 @@
 
 [[constraint]]
   name = "github.com/golang/protobuf"
-  version = "1.2.0"
+  version = "^1.0.0"
 
 [[constraint]]
   name = "github.com/gorilla/websocket"
-  version = "1.4.0"
+  version = "^1.0.0"
 
 [[constraint]]
   name = "github.com/kelseyhightower/envconfig"
-  version = "1.3.0"
+  version = "^1.0.0"
 
 [[constraint]]
   name = "github.com/onsi/ginkgo"
-  version = "1.7.0"
+  version = "^1.0.0"
 
 [[constraint]]
   name = "github.com/onsi/gomega"
-  version = "1.4.3"
+  version = "^1.0.0"
 
 [[constraint]]
   name = "github.com/pkg/errors"
@@ -69,6 +69,10 @@
 [[constraint]]
   branch = "master"
   name = "google.golang.org/genproto"
+
+[[override]]
+  name = "gopkg.in/fsnotify.v1"
+  source = "gopkg.in/fsnotify/fsnotify.v1"
 
 [prune]
   go-tests = true
