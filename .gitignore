@@ -18,3 +18,9 @@ releases/**/*.tgz
 #*
 product/
 **/credentials.json
+stackdriver-tools-release-*.tar.gz
+stackdriver-nozzle*.pivotal
+stackdriver-nozzle*.pivotal.sha256
+tile.yml
+tile-history.yml
+src/stackdriver-nozzle/release
