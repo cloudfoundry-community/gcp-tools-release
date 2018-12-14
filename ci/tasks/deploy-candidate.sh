@@ -15,6 +15,10 @@ check_param cf_api_url
 check_param firehose_username
 check_param firehose_password
 
+check_param rlp_ca_cert
+check_param rlp_cert
+check_param rlp_key
+
 # Google network settings
 check_param google_zone
 check_param google_region
@@ -62,7 +66,10 @@ bosh2 update-cloud-config -n manifests/cloud-config-gcp.yml \
           -v "tags=['stackdriver-nozzle']" \
           -v internal_cidr=10.0.0.0/16 \
           -v internal_gw=10.0.0.1 \
-          -v "reserved=[10.0.0.1-10.0.0.10]"
+          -v "reserved=[10.0.0.1-10.0.0.10]" \
+          -v rlp_ca_cert="${rlp_ca_cert}" \
+          -v rlp_cert="${rlp_cert}" \
+          -v rlp_key="${rlp_key}"
 
 bosh2 cloud-config
 
