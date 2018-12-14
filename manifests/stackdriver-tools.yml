@@ -32,6 +32,10 @@ instance_groups:
   - name: stackdriver-agent
     release: stackdriver-tools
   properties:
+    rlp:
+      ca_cert: (( $ops_manager.ca_certificate ))
+      cert: (( .properties.rlp_creds.cert_pem ))
+      key: (( .properties.rlp_creds.private_key_pem ))
     firehose:
       endpoint: ((firehose_endpoint))
       username: ((firehose_username))
