@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -65,13 +64,13 @@ func New(c *config.Config, logger lager.Logger) *App {
 	certFilename := filepath.Join(tempDir, "cert.pem")
 	keyFilename := filepath.Join(tempDir, "key.pem")
 
-	if err := ioutil.WriteFile(caFilename, []byte(c.RLPCACert), os.WritePermission); err != nil {
+	if err := ioutil.WriteFile(caFilename, []byte(c.RLPCACert), 0644); err != nil {
 		logger.Fatal("error writing ca: %v", err)
 	}
-	if err := ioutil.WriteFile(certFilename, []byte(c.RLPCert), os.WritePermission); err != nil {
+	if err := ioutil.WriteFile(certFilename, []byte(c.RLPCert), 0644); err != nil {
 		logger.Fatal("error writing cert: %v", err)
 	}
-	if err := ioutil.WriteFile(keyFilename, []byte(c.RLPKey), os.WritePermission); err != nil {
+	if err := ioutil.WriteFile(keyFilename, []byte(c.RLPKey), 0644); err != nil {
 		logger.Fatal("error writing private key: %v", err)
 	}
 
