@@ -70,9 +70,9 @@ type Config struct {
 	// Reverse Log Proxy (Firehose alternative) config
 	//TODO(evanbrown): Determine which flags should be required
 	RLPAddress           string `envconfig:"rlp_address_colon_port" required:"false"`
-	RLPCACertFile        string `envconfig:"rlp_ca_cert_file" required:"false"`
-	RLPCertFile          string `envconfig:"rlp_cert_file" required:"false"`
-	RLPKeyFile           string `envconfig:"rlp_key_file" required:"false"`
+	RLPCACert            string `envconfig:"rlp_ca_cert" required:"false"`
+	RLPCert              string `envconfig:"rlp_cert" required:"false"`
+	RLPKey               string `envconfig:"rlp_key" required:"false"`
 	RLPShardID           string `envconfig:"rlp_shard_id" default:"stackdriver-nozzle"`
 	RLPDeterministicName string `envconfig:"rlp_deterministic_name"`
 

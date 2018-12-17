@@ -5,6 +5,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -53,10 +56,29 @@ func New(c *config.Config, logger lager.Logger) *App {
 	}
 	labelMaker := nozzle.NewLabelMaker(appInfoRepository, c.FoundationName)
 
+	tempDir, err := ioutil.TempDir("", "stackdriver-nozzle-tls")
+	if err != nil {
+		logger.Fatal("could not create certs directory: %v", err)
+	}
+
+	caFilename := filepath.Join(tempDir, "ca.pem")
+	certFilename := filepath.Join(tempDir, "cert.pem")
+	keyFilename := filepath.Join(tempDir, "key.pem")
+
+	if err := ioutil.WriteFile(caFilename, []byte(c.RLPCACert), os.WritePermission); err != nil {
+		logger.Fatal("error writing ca: %v", err)
+	}
+	if err := ioutil.WriteFile(certFilename, []byte(c.RLPCert), os.WritePermission); err != nil {
+		logger.Fatal("error writing cert: %v", err)
+	}
+	if err := ioutil.WriteFile(keyFilename, []byte(c.RLPKey), os.WritePermission); err != nil {
+		logger.Fatal("error writing private key: %v", err)
+	}
+
 	tlsConfig, err := loggregator.NewEgressTLSConfig(
-		c.RLPCACertFile,
-		c.RLPCertFile,
-		c.RLPKeyFile,
+		caFilename,
+		certFilename,
+		keyFilename,
 	)
 	if err != nil {
 		logger.Fatal("Could not create TLS config", err)
