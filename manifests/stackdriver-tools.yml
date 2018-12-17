@@ -33,9 +33,9 @@ instance_groups:
     release: stackdriver-tools
   properties:
     rlp:
-      ca_cert: ((loggregator_tls_stackdriver-nozzle.ca))
-      cert: ((loggregator_tls_stackdriver-nozzle.certificate))
-      key: ((loggregator_tls_stackdriver-nozzle.private_key))
+      ca_cert: ((stackdriver_nozzle_cert.ca))
+      cert: ((stackdriver_nozzle_cert.certificate))
+      key: ((stackdriver_nozzle_cert.private_key))
     firehose:
       endpoint: ((firehose_endpoint))
       username: ((firehose_username))
