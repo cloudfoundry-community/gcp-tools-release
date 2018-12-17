@@ -22,9 +22,9 @@ case $1 in
     chown -R vcap:vcap $LOG_DIR
 
     export RLP_ADDRESS_COLON_PORT=<%= link('reverse_log_proxy').address %>:<%= link('reverse_log_proxy').p('egress.port', 8082) %>
-    export RLP_CA_CERT=<%= p('rlp.ca_cert') %>
-    export RLP_CERT=<%= p('rlp.cert') %>
-    export RLP_KEY=<%= p('rlp.key') %>
+    export RLP_CA_CERT_FILE=$JOB_DIR/config/cacert.pem
+    export RLP_CERT_FILE=$JOB_DIR/config/cert.pem
+    export RLP_KEY_FILE=$JOB_DIR/config/cert.key
     export RLP_SHARD_ID=<%= spec.deployment %>
     export RLP_DETERMINISTIC_NAME=<%= spec.id %>
 
