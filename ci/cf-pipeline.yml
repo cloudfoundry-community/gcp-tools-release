@@ -1,0 +1,163 @@
+---
+# Snippet for creating concourse pipelines which test CF apps/BOSH releases on Cloud Foundry.
+#
+# GCP is the IaaS used.
+#
+# Concourse Resources used:
+# https://github.com/concourse/pool-resource - for locking
+# https://github.com/cloudfoundry/bbl-state-resource - for BOSH director
+# https://github.com/cloudfoundry/bosh-deployment-resource - for deploying Cloud Foundry
+#
+# Based on the installation guides found at:
+# - https://github.com/cloudfoundry/bosh-bootloader
+# - https://github.com/cloudfoundry/cf-deployment
+#
+# Pipeline is split into 3 sub-pipelines:
+# 1) BOSH/CF deploy, manual trigger
+# 2) BOSH/CF destroy, manual trigger
+# 3) Source code trigger (TODO: add this)
+#
+# The following configuration is required:
+#
+# bbl_gcp_service_account_key: insert Google Service Account key with correct creds (see bosh-bootloader tutorial)
+# domain_name: my-bosh-env.my-domain.com
+# bbl-state-bucket: some-bucket-for-bbl-state
+# bbl_env_name: my-bosh-env
+# load_balancer_cert: insert PEM
+# load_balancer_key: insert PEM
+#
+# Note: for dev purposes you can create a self-signed cert for the load balancer:
+# openssl req -newkey rsa:2048 -nodes -keyout key.pem -x509 -days 365 -out cert.pem
+#
+# You can use the bbl-state tarball, once it's stored in GCS, to perform bbl tasks such as SSHing or accessing Credhub
+# After the CF environment is created, you can look for the CF admin password in the BOSH Director's Credhub.
+
+jobs:
+  # BOSH/CF Deploy Pipeline
+  - name: env-up
+    serial: true
+    plan:
+      # Write load balancer certs/key to files for bbl
+      - task: write-cert
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source:
+              repository: alpine
+          params:
+            CERT: ((load_balancer_cert))
+            KEY: ((load_balancer_key))
+          run:
+            path: bash
+            args: ["-c", "ls -alR && echo -e \"${CERT}\" > lb_cert/cert.pem && echo -e \"${KEY}\" > lb_key/key.pem"]
+          outputs:
+            - name: lb_cert
+            - name: lb_key
+      # Deploys the BOSH director via `bbl up`
+      - put: bbl-state
+        params:
+          command: up
+          name: ((bbl_env_name))
+          args:
+            lb-cert: /tmp/build/put/lb_cert/cert.pem
+            lb-key: /tmp/build/put/lb_key/key.pem
+      - task: create-bbl-env
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source:
+              repository: pivotalcfreleng/bbl
+          inputs:
+            - name: bbl-state
+          outputs:
+            - name: bbl-env
+          run:
+            path: sh
+            args: ["-c", "mkdir -p bbl-env && cd bbl-state && bbl print-env > ../bbl-env/env"]
+      # Gets the CF deployment source (manifest/releases/operations)
+      - get: cf-deployment-source
+      # Gets the latest ubuntu stemcell
+      - get: gcp-stemcells
+      # Patches the deployment manifest to use the stemcell provided by the previous step.
+      # If the manifest uses a stemcell which is not the latest, then the first deployment of the pipeline will fail.
+      # This is a small hack to ensure the CF deployment step uses a provided stemcell, preventing the hangup.
+      # Note: this means the CF deployment might use an newer, untested stemcell.
+      - task: update-manifest
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source:
+              repository: mikefarah/yq
+          inputs:
+            - name: cf-deployment-source
+            - name: gcp-stemcells
+          outputs:
+            - name: edited-manifest
+          run:
+            path: sh
+            args: ["-c", "mkdir -p edited-manifest && yq w cf-deployment-source/cf-deployment.yml stemcells[0].version \"$(cat gcp-stemcells/version)\" > edited-manifest/cf-deployment.yml"]
+      # Performs a BOSH deploy to deploy Cloud Foundry on the BOSH director
+      - put: cf
+        params:
+          source_file: bbl-state/bdr-source-file
+          manifest: edited-manifest/cf-deployment.yml
+          stemcells:
+            - gcp-stemcells/stemcell.tgz
+          vars:
+            enable_ssl: false
+            system_domain: ((domain_name))
+
+          ops_files:
+            - cf-deployment-source/operations/scale-to-one-az.yml
+            - cf-deployment-source/operations/use-compiled-releases.yml
+  # BOSH/CF Deploy Pipeline
+  # TODO add CF down
+  - name: env-down
+    serial: true
+    plan:
+    - get: bbl-state
+    - put: bbl-state
+      params:
+        command: down
+        state_dir: bbl-state
+
+resources:
+  # BOSH Director resource. Represents the state of BOSH.
+  - name: bbl-state
+    type: bbl-state-resource
+    source:
+      bucket: ((bbl-state-bucket))
+      iaas: gcp
+      lb_type: cf
+      lb_domain: ((domain_name))
+      gcp_region: us-east1
+      gcp_service_account_key: ((bbl_gcp_service_account_key))
+  # Cloud Foundry resource. Represents the state of the Cloud Foundry BOSH deployment.
+  - name: cf
+    type: bosh-deployment
+    source:
+      deployment: cf
+  # Source code for The Cloud Foundry BOSH deployment. Contains the deploy manifest and the BOSH releases.
+  - name: cf-deployment-source
+    type: git
+    source:
+      uri: https://github.com/cloudfoundry/cf-deployment.git
+      branch: master
+  # Resource for the stemcell used by Cloud Foundry.
+  - name: gcp-stemcells
+    type: bosh-io-stemcell
+    source:
+      name: bosh-google-kvm-ubuntu-xenial-go_agent
+
+resource_types:
+  - name: bbl-state-resource
+    type: docker-image
+    source:
+      repository: cfinfrastructure/bbl-state-resource
+  - name: bosh-deployment
+    type: docker-image
+    source:
+      repository: cloudfoundry/bosh-deployment-resource
