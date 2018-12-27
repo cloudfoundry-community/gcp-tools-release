@@ -123,6 +123,92 @@ jobs:
       params:
         command: down
         state_dir: bbl-state
+  # Stackdriver-tools CI/CD
+  - name: lint
+    plan:
+      - get: stackdriver-tools
+        trigger: true
+      - task: test
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source:
+              repository: golang
+          inputs:
+            - name: stackdriver-tools
+          run:
+            dir: stackdriver-tools
+            path: ./ci/setup-gopath.sh
+            args: [make, get-deps, lint]
+  - name: test
+    plan:
+      - get: stackdriver-tools
+        trigger: true
+      - task: test
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source:
+              repository: golang
+          inputs:
+            - name: stackdriver-tools
+          run:
+            dir: stackdriver-tools
+            path: ./ci/setup-gopath.sh
+            args: [make, get-deps, test]
+  - name: build
+    plan:
+      - get: stackdriver-tools
+        trigger: true
+      - task: test
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source:
+              repository: golang
+          inputs:
+            - name: stackdriver-tools
+          run:
+            dir: stackdriver-tools
+            path: ./ci/setup-gopath.sh
+            args: [make, get-deps, build]
+  - name: tile
+    plan:
+      - get: stackdriver-tools
+        trigger: true
+      - task: test
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source:
+              repository: cfplatformeng/tile-generator
+          inputs:
+            - name: stackdriver-tools
+          run:
+            dir: stackdriver-tools
+            path: sh
+            args: [-c, "apk add --no-cache make && make tile"]]
+  - name: bosh-release
+    plan:
+      - get: stackdriver-tools
+        trigger: true
+      - task: test
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source:
+              repository: cfplatformeng/tile-generator
+          inputs:
+            - name: stackdriver-tools
+          run:
+            dir: stackdriver-tools
+            path: sh
+            args: [-c, "apk add --no-cache make && make bosh-release"]
 
 resources:
   # BOSH Director resource. Represents the state of BOSH.
@@ -161,3 +247,11 @@ resource_types:
     type: docker-image
     source:
       repository: cloudfoundry/bosh-deployment-resource
+  - name: stackdriver-tools
+    type: git
+    source:
+      uri: https://github.com/cloudfoundry-community/stackdriver-tools.git
+      branch: update-ci
+      ignore_paths:
+        - .final_builds/**/*.yml
+        - releases/**/*.yml
