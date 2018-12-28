@@ -79,7 +79,7 @@ jobs:
       # Gets the CF deployment source (manifest/releases/operations)
       - get: cf-deployment-source
       # Gets the latest ubuntu stemcell
-      - get: gcp-stemcells
+      - get: gcp-xenial-stemcells
       # Patches the deployment manifest to use the stemcell provided by the previous step.
       # If the manifest uses a stemcell which is not the latest, then the first deployment of the pipeline will fail.
       # This is a small hack to ensure the CF deployment step uses a provided stemcell, preventing the hangup.
@@ -93,19 +93,19 @@ jobs:
               repository: mikefarah/yq
           inputs:
             - name: cf-deployment-source
-            - name: gcp-stemcells
+            - name: gcp-xenial-stemcells
           outputs:
             - name: edited-manifest
           run:
             path: sh
-            args: ["-c", "mkdir -p edited-manifest && yq w cf-deployment-source/cf-deployment.yml stemcells[0].version \"$(cat gcp-stemcells/version)\" > edited-manifest/cf-deployment.yml"]
+            args: ["-c", "mkdir -p edited-manifest && yq w cf-deployment-source/cf-deployment.yml stemcells[0].version \"$(cat gcp-xenial-stemcells/version)\" > edited-manifest/cf-deployment.yml"]
       # Performs a BOSH deploy to deploy Cloud Foundry on the BOSH director
       - put: cf
         params:
           source_file: bbl-state/bdr-source-file
           manifest: edited-manifest/cf-deployment.yml
           stemcells:
-            - gcp-stemcells/stemcell.tgz
+            - gcp-xenial-stemcells/stemcell.tgz
           vars:
             enable_ssl: false
             system_domain: ((domain_name))
@@ -163,11 +163,11 @@ jobs:
           run:
             dir: source
             path: sh
-            args: [-c, "apk add --no-cache make ruby && make -e VERSION=\"$(cat ../version/version)\" tile && cp stackdriver-tools*.pivotal* ../tile-out/"]
+            args: [-c, "apk add --no-cache make ruby && make -e VERSION=\"$(cat ../version/version)\" tile && cp stackdriver-nozzle*.pivotal* ../tile-out/"]
       - put: stackdriver-nozzle-tile
-        params: {file: tile/*.pivotal}
+        params: {file: tile-out/*.pivotal}
       - put: stackdriver-nozzle-tile-sha256
-        params: {file: tile/*.pivotal.sha256}
+        params: {file: tile-out/*.pivotal.sha256}
   - name: build-bosh-release
     plan:
       - get: source
@@ -200,7 +200,7 @@ jobs:
       - get: bbl-state
         trigger: true
         passed: [env-up]
-      - get: stackdriver-tools-artifacts
+      - get: source
         trigger: true
         passed: [build-bosh-release]
       - put: stackdriver-tools-release
@@ -227,7 +227,7 @@ resources:
   - name: stackdriver-tools-release
     type: bosh-deployment
     source:
-      deployment: stackdriver-tools
+      deployment: stackdriver-nozzle
   # Source code for The Cloud Foundry BOSH deployment. Contains the deploy manifest and the BOSH releases.
   - name: cf-deployment-source
     type: git
@@ -235,7 +235,7 @@ resources:
       uri: https://github.com/cloudfoundry/cf-deployment.git
       branch: master
   # Resource for the stemcell used by Cloud Foundry.
-  - name: gcp-stemcells
+  - name: gcp-xenial-stemcells
     type: bosh-io-stemcell
     source:
       name: bosh-google-kvm-ubuntu-xenial-go_agent
