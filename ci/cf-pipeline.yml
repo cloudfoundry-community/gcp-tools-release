@@ -62,20 +62,6 @@ jobs:
           args:
             lb-cert: /tmp/build/put/lb_cert/cert.pem
             lb-key: /tmp/build/put/lb_key/key.pem
-      - task: create-bbl-env
-        config:
-          platform: linux
-          image_resource:
-            type: docker-image
-            source:
-              repository: pivotalcfreleng/bbl
-          inputs:
-            - name: bbl-state
-          outputs:
-            - name: bbl-env
-          run:
-            path: sh
-            args: ["-c", "mkdir -p bbl-env && cd bbl-state && bbl print-env > ../bbl-env/env"]
       # Gets the CF deployment source (manifest/releases/operations)
       - get: cf-deployment-source
       # Gets the latest ubuntu stemcell
@@ -203,10 +189,25 @@ jobs:
       - get: source
         trigger: true
         passed: [build-bosh-release]
+      - get: gcp-xenial-stemcells
+      - get: stackdriver-tools-artifacts
+        trigger: true
+        passed: [build-bosh-release]
       - put: stackdriver-tools-release
         params:
           source_file: bbl-state/bdr-source-file
           manifest: source/manifests/stackdriver-tools.yml
+          stemcells:
+            - gcp-xenial-stemcells/stemcell.tgz
+          releases:
+            - stackdriver-tools-artifacts/stackdriver*
+          vars:
+            firehose_endpoint: ((firehose_endpoint))
+            firehose_username: ((firehose_username))
+            firehose_password: ((firehose_password))
+            skip_ssl: true
+            gcp_project_id: ((gcp_project_id))
+            gcp_service_account_json: ((service_account_key_json))
 
 resources:
   # BOSH Director resource. Represents the state of BOSH.

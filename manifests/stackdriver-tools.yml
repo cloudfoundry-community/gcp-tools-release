@@ -32,6 +32,10 @@ instance_groups:
   - name: stackdriver-agent
     release: stackdriver-tools
   properties:
+    rlp:
+      ca_cert: ((loggregator_ca.ca))
+      cert: ((stackdriver_nozzle.certificate))
+      key: ((stackdriver_nozzle.private_key))
     firehose:
       endpoint: ((firehose_endpoint))
       username: ((firehose_username))
@@ -51,3 +55,12 @@ update:
   canary_watch_time: 1000-60000
   update_watch_time: 1000-60000
 
+variables:
+  - name: stackdriver_nozzle
+    type: certificate
+    options:
+      ca: loggregator_ca
+      common_name: stackdriver-nozzle
+      extended_key_usage:
+        - client_auth
+        - server_auth
