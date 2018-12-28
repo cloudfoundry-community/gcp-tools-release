@@ -1,40 +1,242 @@
 ---
+# Snippet for creating concourse pipelines which test CF apps/BOSH releases on Cloud Foundry.
+#
+# GCP is the IaaS used.
+#
+# Concourse Resources used:
+# https://github.com/concourse/pool-resource - for locking
+# https://github.com/cloudfoundry/bbl-state-resource - for BOSH director
+# https://github.com/cloudfoundry/bosh-deployment-resource - for deploying Cloud Foundry
+#
+# Based on the installation guides found at:
+# - https://github.com/cloudfoundry/bosh-bootloader
+# - https://github.com/cloudfoundry/cf-deployment
+#
+# Pipeline is split into 3 sub-pipelines:
+# 1) BOSH/CF deploy, manual trigger
+# 2) BOSH/CF destroy, manual trigger
+# 3) Source code trigger (TODO: add this)
+#
+# The following configuration is required:
+#
+# bbl_gcp_service_account_key: insert Google Service Account key with correct creds (see bosh-bootloader tutorial)
+# domain_name: my-bosh-env.my-domain.com
+# bbl-state-bucket: some-bucket-for-bbl-state
+# bbl_env_name: my-bosh-env
+# load_balancer_cert: insert PEM
+# load_balancer_key: insert PEM
+#
+# Note: for dev purposes you can create a self-signed cert for the load balancer:
+# openssl req -newkey rsa:2048 -nodes -keyout key.pem -x509 -days 365 -out cert.pem
+#
+# You can use the bbl-state tarball, once it's stored in GCS, to perform bbl tasks such as SSHing or accessing Credhub
+# After the CF environment is created, you can look for the CF admin password in the BOSH Director's Credhub.
+
 jobs:
-  - name: lint
+  # BOSH/CF Deploy Pipeline
+  - name: env-up
+    serial: true
     plan:
-      - get: stackdriver-tools
-        trigger: true
-      - task: test
-        file: stackdriver-tools/ci/tasks/lint.yml
-  - name: build
+      # Write load balancer certs/key to files for bbl
+      - task: write-cert
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source:
+              repository: alpine
+          params:
+            CERT: ((load_balancer_cert))
+            KEY: ((load_balancer_key))
+          run:
+            path: sh
+            args: ["-c", "ls -alR && echo -e \"${CERT}\" > lb_cert/cert.pem && echo -e \"${KEY}\" > lb_key/key.pem"]
+          outputs:
+            - name: lb_cert
+            - name: lb_key
+      # Deploys the BOSH director via `bbl up`
+      - put: bbl-state
+        params:
+          command: up
+          name: ((bbl_env_name))
+          args:
+            lb-cert: /tmp/build/put/lb_cert/cert.pem
+            lb-key: /tmp/build/put/lb_key/key.pem
+      # Gets the CF deployment source (manifest/releases/operations)
+      - get: cf-deployment-source
+      # Gets the latest ubuntu stemcell
+      - get: gcp-xenial-stemcells
+      # Patches the deployment manifest to use the stemcell provided by the previous step.
+      # If the manifest uses a stemcell which is not the latest, then the first deployment of the pipeline will fail.
+      # This is a small hack to ensure the CF deployment step uses a provided stemcell, preventing the hangup.
+      # Note: this means the CF deployment might use an newer, untested stemcell.
+      - task: update-manifest
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source:
+              repository: mikefarah/yq
+          inputs:
+            - name: cf-deployment-source
+            - name: gcp-xenial-stemcells
+          outputs:
+            - name: edited-manifest
+          run:
+            path: sh
+            args: ["-c", "mkdir -p edited-manifest && yq w cf-deployment-source/cf-deployment.yml stemcells[0].version \"$(cat gcp-xenial-stemcells/version)\" > edited-manifest/cf-deployment.yml"]
+      # Performs a BOSH deploy to deploy Cloud Foundry on the BOSH director
+      - put: cf
+        params:
+          source_file: bbl-state/bdr-source-file
+          manifest: edited-manifest/cf-deployment.yml
+          stemcells:
+            - gcp-xenial-stemcells/stemcell.tgz
+          vars:
+            enable_ssl: false
+            system_domain: ((domain_name))
+          ops_files:
+            - cf-deployment-source/operations/scale-to-one-az.yml
+            - cf-deployment-source/operations/use-compiled-releases.yml
+  # BOSH/CF Deploy Pipeline
+  # TODO add CF down
+  - name: env-down
+    serial: true
     plan:
-      - get: stackdriver-tools
-        trigger: true
-      - task: test
-        file: stackdriver-tools/ci/tasks/build.yml
-  - name: test
+    - get: bbl-state
+    - put: bbl-state
+      params:
+        command: down
+        state_dir: bbl-state
+  # Stackdriver-tools CI/CD
+  - name: unit-test
     plan:
-      - get: stackdriver-tools
+      - get: source
         trigger: true
-      - task: test
-        file: stackdriver-tools/ci/tasks/test.yml
-  - name: bosh-release
+      - task: unit-test
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source:
+              repository: golang
+          inputs:
+            - name: source
+          run:
+            dir: source
+            path: ./ci/setup-gopath.sh
+            args: [make, get-deps, lint, test, build]
+  - name: build-tile
     plan:
-      - get: stackdriver-tools
+      - get: source
         trigger: true
-        passed: [lint, build, test]
-      - task: test
-        file: stackdriver-tools/ci/tasks/bosh-release.yml
-  - name: tile
+        passed: [unit-test]
+      - task: tile
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source:
+              repository: m0pt0pmatt/tile-generator
+          inputs:
+            - name: source
+          outputs:
+            - name: tile-out
+          run:
+            dir: source
+            path: sh
+            args: [-c, "apk add --no-cache make ruby && make tile && cp stackdriver-nozzle*.pivotal* ../tile-out/"]
+      - put: stackdriver-nozzle-tile
+        params: {file: tile-out/*.pivotal}
+      - put: stackdriver-nozzle-tile-sha256
+        params: {file: tile-out/*.pivotal.sha256}
+  - name: build-bosh-release
     plan:
-      - get: stackdriver-tools
+      - get: source
         trigger: true
-        passed: [lint, build, test]
-      - task: test
-        file: stackdriver-tools/ci/tasks/tile.yml
+        passed: [unit-test]
+      - task: bosh-release
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source:
+              repository: m0pt0pmatt/tile-generator
+          inputs:
+            - name: source
+          outputs:
+            - name: bosh-release-out
+          run:
+            dir: source
+            path: sh
+            args: [-c, "apk add --no-cache make && pwd && make bosh-release && cp stackdriver-tools-release-*.tar.gz* ../bosh-release-out/"]
+      - put: stackdriver-tools-artifacts
+        params: {file: bosh-release-out/stackdriver-tools-release-*.tar.gz}
+      - put: stackdriver-tools-artifacts-sha256
+        params: {file: bosh-release-out/stackdriver-tools-release-*.tar.gz.sha256}
+  - name: deploy-bosh-release
+    plan:
+      - get: bbl-state
+        trigger: true
+        passed: [env-up]
+      - get: source
+        trigger: true
+        passed: [build-bosh-release]
+      - get: gcp-xenial-stemcells
+      - get: stackdriver-tools-artifacts
+        trigger: true
+        passed: [build-bosh-release]
+      - put: stackdriver-tools-release
+        params:
+          source_file: bbl-state/bdr-source-file
+          manifest: source/manifests/stackdriver-tools.yml
+          stemcells:
+            - gcp-xenial-stemcells/stemcell.tgz
+          releases:
+            - stackdriver-tools-artifacts/stackdriver*
+          vars:
+            firehose_endpoint: ((firehose_endpoint))
+            firehose_username: ((firehose_username))
+            firehose_password: ((firehose_password))
+            skip_ssl: true
+            gcp_project_id: ((gcp_project_id))
+            gcp_service_account_json: ((service_account_key_json))
+            cf_deployment_prefix: /bosh-stackdriver-tools/cf/
 
 resources:
-  - name: stackdriver-tools
+  # BOSH Director resource. Represents the state of BOSH.
+  - name: bbl-state
+    type: bbl-state-resource
+    source:
+      bucket: ((bbl-state-bucket))
+      iaas: gcp
+      lb_type: cf
+      lb_domain: ((domain_name))
+      gcp_region: us-east1
+      gcp_service_account_key: ((service_account_key_json))
+  # Cloud Foundry resource. Represents the state of the Cloud Foundry BOSH deployment.
+  - name: cf
+    type: bosh-deployment
+    source:
+      deployment: cf
+      source_file: bbl-state/bdr-source-file
+  - name: stackdriver-tools-release
+    type: bosh-deployment
+    source:
+      deployment: stackdriver-nozzle
+      source_file: bbl-state/bdr-source-file
+  # Source code for The Cloud Foundry BOSH deployment. Contains the deploy manifest and the BOSH releases.
+  - name: cf-deployment-source
+    type: git
+    source:
+      uri: https://github.com/cloudfoundry/cf-deployment.git
+      branch: master
+  # Resource for the stemcell used by Cloud Foundry.
+  - name: gcp-xenial-stemcells
+    type: bosh-io-stemcell
+    source:
+      name: bosh-google-kvm-ubuntu-xenial-go_agent
+  - name: source
     type: git
     source:
       uri: https://github.com/cloudfoundry-community/stackdriver-tools.git
@@ -42,3 +244,41 @@ resources:
       ignore_paths:
         - .final_builds/**/*.yml
         - releases/**/*.yml
+  - name: stackdriver-tools-artifacts
+    type: gcs-resource
+    source:
+      json_key: ((service_account_key_json))
+      bucket:   ((resources_bucket_name))
+      regexp:   beta/stackdriver-tools/stackdriver-tools-release-.*.tar.gz
+  - name: stackdriver-tools-artifacts-sha256
+    type: gcs-resource
+    source:
+      json_key: ((service_account_key_json))
+      bucket:   ((resources_bucket_name))
+      regexp:   beta/stackdriver-tools/stackdriver-tools-release-.*.tar.gz.sha256
+  - name: stackdriver-nozzle-tile
+    type: gcs-resource
+    source:
+      json_key: ((service_account_key_json))
+      bucket:   ((resources_bucket_name))
+      regexp:   beta/stackdriver-tools/stackdriver-nozzle-.*.pivotal.sha256
+  - name: stackdriver-nozzle-tile-sha256
+    type: gcs-resource
+    source:
+      json_key: ((service_account_key_json))
+      bucket:   ((resources_bucket_name))
+      regexp:   beta/stackdriver-tools/stackdriver-nozzle-.*.pivotal.sha256
+
+resource_types:
+  - name: bbl-state-resource
+    type: docker-image
+    source:
+      repository: cfinfrastructure/bbl-state-resource
+  - name: bosh-deployment
+    type: docker-image
+    source:
+      repository: cloudfoundry/bosh-deployment-resource
+  - name: gcs-resource
+    type: docker-image
+    source:
+      repository: frodenas/gcs-resource

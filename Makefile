@@ -1,8 +1,7 @@
 .EXPORT_ALL_VARIABLES:
 COMMIT_HASH := $(shell git show-ref HEAD | cut -d' ' -f 1)
-LATEST_TAG := $(shell git describe --abbrev=0 --tags)
 TIMESTAMP := $(shell date +%s)
-VERSION ?= $(shell git describe --tags --exact-match `git rev-parse HEAD` 2>/dev/null || echo 0.0.$(TIMESTAMP)-custom.$$(git rev-parse --short HEAD))
+VERSION ?= $(shell git describe --tags --exact-match `git rev-parse HEAD` 2>/dev/null || echo 0.0.$(TIMESTAMP)-custom.$(COMMIT_HASH))
 TILE_NAME ?= $(shell if [ `echo $(VERSION) | grep -o custom` ]; then echo stackdriver-nozzle-custom; else echo stackdriver-nozzle; fi)
 TILE_LABEL ?= $(shell if [ `echo $(VERSION) | grep -o custom` ]; then echo "Stackdriver Nozzle (custom build)"; else echo Stackdriver Nozzle; fi)
 TILE_FILENAME := $(TILE_NAME)-$(VERSION).pivotal
