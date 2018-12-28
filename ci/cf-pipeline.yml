@@ -95,7 +95,6 @@ jobs:
           vars:
             enable_ssl: false
             system_domain: ((domain_name))
-
           ops_files:
             - cf-deployment-source/operations/scale-to-one-az.yml
             - cf-deployment-source/operations/use-compiled-releases.yml
@@ -208,6 +207,7 @@ jobs:
             skip_ssl: true
             gcp_project_id: ((gcp_project_id))
             gcp_service_account_json: ((service_account_key_json))
+            cf_deployment_prefix: /bosh-stackdriver-tools/cf/
 
 resources:
   # BOSH Director resource. Represents the state of BOSH.
@@ -225,10 +225,12 @@ resources:
     type: bosh-deployment
     source:
       deployment: cf
+      source_file: bbl-state/bdr-source-file
   - name: stackdriver-tools-release
     type: bosh-deployment
     source:
       deployment: stackdriver-nozzle
+      source_file: bbl-state/bdr-source-file
   # Source code for The Cloud Foundry BOSH deployment. Contains the deploy manifest and the BOSH releases.
   - name: cf-deployment-source
     type: git
