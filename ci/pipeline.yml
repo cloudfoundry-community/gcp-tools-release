@@ -145,7 +145,7 @@ jobs:
           run:
             dir: source
             path: sh
-            args: [-c, "apk add --no-cache make ruby && make tile && cp stackdriver-nozzle*.pivotal* ../tile-out/"]
+            args: [-c, "apk add --no-cache make git ruby && make tile && cp stackdriver-nozzle*.pivotal* ../tile-out/"]
       - put: stackdriver-nozzle-tile
         params: {file: tile-out/*.pivotal}
       - put: stackdriver-nozzle-tile-sha256
@@ -169,7 +169,7 @@ jobs:
           run:
             dir: source
             path: sh
-            args: [-c, "apk add --no-cache make && pwd && make bosh-release && cp stackdriver-tools-release-*.tar.gz* ../bosh-release-out/"]
+            args: [-c, "apk add --no-cache make git && pwd && make bosh-release && cp stackdriver-tools-release-*.tar.gz* ../bosh-release-out/"]
       - put: stackdriver-tools-artifacts
         params: {file: bosh-release-out/stackdriver-tools-release-*.tar.gz}
       - put: stackdriver-tools-artifacts-sha256
