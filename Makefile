@@ -8,6 +8,7 @@ TILE_LABEL ?= $(shell if [ `echo $(VERSION) | grep -o custom` ]; then echo "Stac
 TILE_FILENAME := $(TILE_NAME)-$(VERSION).pivotal
 TILE_SHA256 := $(TILE_FILENAME).sha256
 RELEASE_TARBALL := stackdriver-tools-release-$(VERSION).tar.gz
+RELEASE_SHA256 := $(RELEASE_TARBALL).sha256
 RELEASE_PATH := $(PWD)/$(RELEASE_TARBALL)
 
 build: test
@@ -45,6 +46,7 @@ bosh-release:
 	echo $(VERSION) > src/stackdriver-nozzle/release
 	bosh sync-blobs
 	bosh create-release --name=stackdriver-tools --version=$(VERSION) --tarball=$(RELEASE_TARBALL) --force --sha2
+	echo -n $((sha256sum $(RELEASE_FILENAME) | cut -d' ' -f 1)) > $(RELEASE_SHA256)
 
 tile: bosh-release
 	erb tile.yml.erb > tile.yml

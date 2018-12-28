@@ -49,7 +49,7 @@ jobs:
             CERT: ((load_balancer_cert))
             KEY: ((load_balancer_key))
           run:
-            path: bash
+            path: sh
             args: ["-c", "ls -alR && echo -e \"${CERT}\" > lb_cert/cert.pem && echo -e \"${KEY}\" > lb_key/key.pem"]
           outputs:
             - name: lb_cert
@@ -124,11 +124,11 @@ jobs:
         command: down
         state_dir: bbl-state
   # Stackdriver-tools CI/CD
-  - name: lint
+  - name: unit-test
     plan:
-      - get: stackdriver-tools
+      - get: source
         trigger: true
-      - task: test
+      - task: unit-test
         config:
           platform: linux
           image_resource:
@@ -136,79 +136,77 @@ jobs:
             source:
               repository: golang
           inputs:
-            - name: stackdriver-tools
+            - name: source
           run:
-            dir: stackdriver-tools
+            dir: source
             path: ./ci/setup-gopath.sh
-            args: [make, get-deps, lint]
-  - name: test
+            args: [make, get-deps, lint, test, build]
+  - name: build-tile
     plan:
-      - get: stackdriver-tools
+      - get: source
         trigger: true
-      - task: test
+        passed: [unit-test]
+      - get: version
+        params: {bump: patch}
+      - task: tile
         config:
           platform: linux
           image_resource:
             type: docker-image
             source:
-              repository: golang
+              repository: m0pt0pmatt/tile-generator
           inputs:
-            - name: stackdriver-tools
+            - name: source
+            - name: version
+          outputs:
+            - name: tile-out
           run:
-            dir: stackdriver-tools
-            path: ./ci/setup-gopath.sh
-            args: [make, get-deps, test]
-  - name: build
-    plan:
-      - get: stackdriver-tools
-        trigger: true
-      - task: test
-        config:
-          platform: linux
-          image_resource:
-            type: docker-image
-            source:
-              repository: golang
-          inputs:
-            - name: stackdriver-tools
-          run:
-            dir: stackdriver-tools
-            path: ./ci/setup-gopath.sh
-            args: [make, get-deps, build]
-  - name: tile
-    plan:
-      - get: stackdriver-tools
-        trigger: true
-      - task: test
-        config:
-          platform: linux
-          image_resource:
-            type: docker-image
-            source:
-              repository: cfplatformeng/tile-generator
-          inputs:
-            - name: stackdriver-tools
-          run:
-            dir: stackdriver-tools
+            dir: source
             path: sh
-            args: [-c, "apk add --no-cache make && make tile"]]
-  - name: bosh-release
+            args: [-c, "apk add --no-cache make ruby && make -e VERSION=\"$(cat ../version/version)\" tile && cp stackdriver-tools*.pivotal* ../tile-out/"]
+      - put: stackdriver-nozzle-tile
+        params: {file: tile/*.pivotal}
+      - put: stackdriver-nozzle-tile-sha256
+        params: {file: tile/*.pivotal.sha256}
+  - name: build-bosh-release
     plan:
-      - get: stackdriver-tools
+      - get: source
         trigger: true
-      - task: test
+        passed: [unit-test]
+      - get: version
+        params: {bump: patch}
+      - task: bosh-release
         config:
           platform: linux
           image_resource:
             type: docker-image
             source:
-              repository: cfplatformeng/tile-generator
+              repository: m0pt0pmatt/tile-generator
           inputs:
-            - name: stackdriver-tools
+            - name: source
+            - name: version
+          outputs:
+            - name: bosh-release-out
           run:
-            dir: stackdriver-tools
+            dir: source
             path: sh
-            args: [-c, "apk add --no-cache make && make bosh-release"]
+            args: [-c, "apk add --no-cache make && pwd && make -e VERSION=\"$(cat ../version/version)\" bosh-release && cp stackdriver-tools-release-*.tar.gz* ../bosh-release-out/"]
+      - put: stackdriver-tools-artifacts
+        params: {file: bosh-release-out/stackdriver-tools-release-*.tar.gz}
+      - put: stackdriver-tools-artifacts-sha256
+        params: {file: bosh-release-out/stackdriver-tools-release-*.tar.gz.sha256}
+  - name: deploy-bosh-release
+    plan:
+      - get: bbl-state
+        trigger: true
+        passed: [env-up]
+      - get: stackdriver-tools-artifacts
+        trigger: true
+        passed: [build-bosh-release]
+      - put: stackdriver-tools-release
+        params:
+          source_file: bbl-state/bdr-source-file
+          manifest: source/manifests/stackdriver-tools.yml
 
 resources:
   # BOSH Director resource. Represents the state of BOSH.
@@ -220,12 +218,16 @@ resources:
       lb_type: cf
       lb_domain: ((domain_name))
       gcp_region: us-east1
-      gcp_service_account_key: ((bbl_gcp_service_account_key))
+      gcp_service_account_key: ((service_account_key_json))
   # Cloud Foundry resource. Represents the state of the Cloud Foundry BOSH deployment.
   - name: cf
     type: bosh-deployment
     source:
       deployment: cf
+  - name: stackdriver-tools-release
+    type: bosh-deployment
+    source:
+      deployment: stackdriver-tools
   # Source code for The Cloud Foundry BOSH deployment. Contains the deploy manifest and the BOSH releases.
   - name: cf-deployment-source
     type: git
@@ -237,6 +239,46 @@ resources:
     type: bosh-io-stemcell
     source:
       name: bosh-google-kvm-ubuntu-xenial-go_agent
+  - name: source
+    type: git
+    source:
+      uri: https://github.com/cloudfoundry-community/stackdriver-tools.git
+      branch: update-ci
+      ignore_paths:
+        - .final_builds/**/*.yml
+        - releases/**/*.yml
+  - name: version
+    type: semver
+    source:
+      driver: gcs
+      initial_version: "2.3.0"
+      key: beta/stackdriver-tools/current-version
+      bucket: ((resources_bucket_name))
+      json_key: ((service_account_key_json))
+  - name: stackdriver-tools-artifacts
+    type: gcs-resource
+    source:
+      json_key: ((service_account_key_json))
+      bucket:   ((resources_bucket_name))
+      regexp:   beta/stackdriver-tools/stackdriver-tools-release-.*.tar.gz
+  - name: stackdriver-tools-artifacts-sha256
+    type: gcs-resource
+    source:
+      json_key: ((service_account_key_json))
+      bucket:   ((resources_bucket_name))
+      regexp:   beta/stackdriver-tools/stackdriver-tools-release-.*.tar.gz.sha256
+  - name: stackdriver-nozzle-tile
+    type: gcs-resource
+    source:
+      json_key: ((service_account_key_json))
+      bucket:   ((resources_bucket_name))
+      regexp:   beta/stackdriver-tools/stackdriver-nozzle-.*.pivotal.sha256
+  - name: stackdriver-nozzle-tile-sha256
+    type: gcs-resource
+    source:
+      json_key: ((service_account_key_json))
+      bucket:   ((resources_bucket_name))
+      regexp:   beta/stackdriver-tools/stackdriver-nozzle-.*.pivotal.sha256
 
 resource_types:
   - name: bbl-state-resource
@@ -247,11 +289,7 @@ resource_types:
     type: docker-image
     source:
       repository: cloudfoundry/bosh-deployment-resource
-  - name: stackdriver-tools
-    type: git
+  - name: gcs-resource
+    type: docker-image
     source:
-      uri: https://github.com/cloudfoundry-community/stackdriver-tools.git
-      branch: update-ci
-      ignore_paths:
-        - .final_builds/**/*.yml
-        - releases/**/*.yml
+      repository: frodenas/gcs-resource
