@@ -33,7 +33,7 @@ instance_groups:
     release: stackdriver-tools
   properties:
     rlp:
-      ca_cert: /bosh-stackdriver-tools/cf/loggregator_ca.ca
+      ca_cert: /bosh-stackdriver-tools/cf/loggregator_ca
       cert: ((stackdriver_nozzle.certificate))
       key: ((stackdriver_nozzle.private_key))
     firehose:
