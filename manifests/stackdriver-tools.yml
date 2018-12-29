@@ -31,6 +31,10 @@ instance_groups:
     release: stackdriver-tools
   - name: stackdriver-agent
     release: stackdriver-tools
+  - name: bosh-dns
+    release: bosh-dns
+  - name: bosh-dns-aliases
+    release: bosh-dns-aliases
   properties:
     rlp:
       ca_cert: ((/bosh-stackdriver-tools/cf/loggregator_ca.certificate))

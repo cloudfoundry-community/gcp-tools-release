@@ -50,7 +50,7 @@ jobs:
             KEY: ((load_balancer_key))
           run:
             path: sh
-            args: ["-c", "ls -alR && echo -e \"${CERT}\" > lb_cert/cert.pem && echo -e \"${KEY}\" > lb_key/key.pem"]
+            args: ["-c", "echo -e \"${CERT}\" > lb_cert/cert.pem && echo -e \"${KEY}\" > lb_key/key.pem"]
           outputs:
             - name: lb_cert
             - name: lb_key
@@ -128,6 +128,7 @@ jobs:
             path: ./ci/setup-gopath.sh
             args: [make, get-deps, lint, test, build]
   - name: build-tile
+    serial: true
     plan:
       - get: source
         attempts: 2
@@ -153,6 +154,7 @@ jobs:
       - put: stackdriver-nozzle-tile-sha256
         params: {file: tile-out/*.pivotal.sha256}
   - name: build-bosh-release
+    serial: true
     plan:
       - get: source
         attempts: 2
@@ -178,6 +180,7 @@ jobs:
       - put: stackdriver-tools-artifacts-sha256
         params: {file: bosh-release-out/stackdriver-tools-release-*.tar.gz.sha256}
   - name: deploy-bosh-release
+    serial: true
     plan:
       - get: bbl-state
         trigger: true
@@ -190,6 +193,21 @@ jobs:
       - get: stackdriver-tools-artifacts
         trigger: true
         passed: [build-bosh-release]
+      - get: bosh-deployment-source
+      - task: update-runtime-config
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source:
+              repository: pivotalcfreleng/bbl
+          inputs:
+            - name: bbl-state
+            - name: bosh-deployment-source
+          run:
+            dir: bbl-state
+            path: sh
+            args: [-c, "eval \"$(bbl print-env)\" && bosh --non-interactive update-runtime-config ../bosh-deployment-source/runtime-configs/dns.yml --name dns"]
       - put: stackdriver-tools-release
         params:
           source_file: bbl-state/bdr-source-file
@@ -234,6 +252,11 @@ resources:
     type: git
     source:
       uri: https://github.com/cloudfoundry/cf-deployment.git
+      branch: master
+  - name: bosh-deployment-source
+    type: git
+    source:
+      uri: https://github.com/cloudfoundry/bosh-deployment.git
       branch: master
   # Resource for the stemcell used by Cloud Foundry.
   - name: gcp-xenial-stemcells
