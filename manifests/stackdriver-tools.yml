@@ -4,14 +4,6 @@ name: stackdriver-nozzle
 releases:
 - name: stackdriver-tools
   version: latest
-- name: "bosh-dns"
-  version: "1.10.0"
-  url: "https://bosh.io/d/github.com/cloudfoundry/bosh-dns-release?v=1.10.0"
-  sha1: "d1aadbda5d60c44dec4a429cda872cf64f6d8d0b"
-- name: "bosh-dns-aliases"
-  version: "0.0.3"
-  url: "https://bosh.io/d/github.com/cloudfoundry/bosh-dns-aliases-release?v=0.0.3"
-  sha1: "b0d0a0350ed87f1ded58b2ebb469acea0e026ccc"
 
 # This block does not belong in here or needs to be specialized for GCP in a different way
 stemcells:
@@ -39,10 +31,6 @@ instance_groups:
     release: stackdriver-tools
   - name: stackdriver-agent
     release: stackdriver-tools
-  - name: bosh-dns
-    release: bosh-dns
-  - name: bosh-dns-aliases
-    release: bosh-dns-aliases
   properties:
     rlp:
       ca_cert: ((/bosh-stackdriver-tools/cf/loggregator_ca.certificate))
