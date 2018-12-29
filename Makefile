@@ -45,13 +45,13 @@ bosh-release:
 	echo $(VERSION) > src/stackdriver-nozzle/release
 	bosh sync-blobs
 	bosh create-release --name=stackdriver-tools --version=$(VERSION) --tarball=$(RELEASE_TARBALL) --force --sha2
-	echo -n $((sha256sum $(RELEASE_FILENAME) | cut -d' ' -f 1)) > $(RELEASE_SHA256)
+	sha256sum $(RELEASE_TARBALL) | cut -d' ' -f 1 > $(RELEASE_SHA256)
 
 tile: bosh-release
 	erb tile.yml.erb > tile.yml
 	tile build $(VERSION)
 	mv product/$(TILE_FILENAME) $(TILE_FILENAME)
-	echo -n $((sha256sum $(TILE_FILENAME) | cut -d' ' -f 1)) > $(TILE_SHA256)
+	sha256sum $(TILE_FILENAME) | cut -d' ' -f 1 > $(TILE_SHA256)
 
 clean:
 	go clean ./...
