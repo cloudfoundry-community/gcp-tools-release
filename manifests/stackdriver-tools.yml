@@ -34,10 +34,6 @@ instance_groups:
       reverse_log_proxy:
         from: reverse_log_proxy
         deployment: cf
-  - name: bosh-dns
-    release: bosh-dns
-  - name: bosh-dns-aliases
-    release: bosh-dns-aliases
   - name: google-fluentd
     release: stackdriver-tools
   - name: stackdriver-agent
