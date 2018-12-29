@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-# Create a workspace for a GOPATh
+# Create a workspace for a GOPATH
 gopath_prefix=/tmp/src/github.com/cloudfoundry-community
 mkdir -p ${gopath_prefix}
 
