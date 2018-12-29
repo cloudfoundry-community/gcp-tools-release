@@ -8,6 +8,9 @@ releases:
   version: "1.10.0"
   url: "https://bosh.io/d/github.com/cloudfoundry/bosh-dns-release?v=1.10.0"
   sha1: "d1aadbda5d60c44dec4a429cda872cf64f6d8d0b"
+- name: bosh-dns-aliases
+  sha1: a99ad9d7d98e2ddb17e8de2afb83bd083b3d3fdd
+  url: "https://storage.googleapis.com/cf-deployment-compiled-releases/bosh-dns-aliases-0.0.3-ubuntu-xenial-170.13-20181214-220259-630417653.tgz"
 
 # This block does not belong in here or needs to be specialized for GCP in a different way
 stemcells:
@@ -31,6 +34,10 @@ instance_groups:
       reverse_log_proxy:
         from: reverse_log_proxy
         deployment: cf
+  - name: bosh-dns
+    release: bosh-dns
+  - name: bosh-dns-aliases
+    release: bosh-dns-aliases
   - name: google-fluentd
     release: stackdriver-tools
   - name: stackdriver-agent
