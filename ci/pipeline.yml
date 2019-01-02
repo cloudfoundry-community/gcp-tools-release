@@ -1,212 +1,279 @@
 ---
 jobs:
-  - name: test-unit
+  # BOSH/CF Deploy Pipeline
+  - name: cf-up
+    serial: true
     plan:
-      - aggregate:
-        - {trigger: true,  get: stackdriver-tools,   resource: stackdriver-tools-in}
-
-      - task: unit-tests
-        file: stackdriver-tools/ci/tasks/unit-tests.yml
-        on_failure:
-          aggregate:
-            - put: slack-alert
-              params:
-                icon_emoji: ":robot_face:"
-                username: Build pipeline
-                channel: "#lambr-private"
-                text: "unit-tests failed"
-
-
-  - name: build-candidate
-    plan:
-      - aggregate:
-        - {trigger: true, passed: [test-unit],  get: stackdriver-tools,   resource: stackdriver-tools-in}
-        - {trigger: false, get: version-semver, params: {bump: patch}}
-
-      - put: version-semver
-        params: {file: version-semver/number}
-
-      - task: make-semver-public
-        file: stackdriver-tools/ci/tasks/public-semver.yml
+      # Write load balancer certs/key to files for bbl
+      - task: write-cert
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source:
+              repository: alpine
+          params:
+            CERT: ((load_balancer_cert))
+            KEY: ((load_balancer_key))
+          run:
+            path: sh
+            args: ["-c", "echo -e \"${CERT}\" > lb_cert/cert.pem && echo -e \"${KEY}\" > lb_key/key.pem"]
+          outputs:
+            - name: lb_cert
+            - name: lb_key
+      # Deploys the BOSH director via `bbl up`
+      - put: bbl-state
         params:
-          project_id: {{project_id}}
-          bucket_name: {{bucket_name}}
-          semver_key: beta/stackdriver-tools/current-version
-
-      - task: build-release
-        file: stackdriver-tools/ci/tasks/build-candidate.yml
-        on_failure:
-          aggregate:
-            - put: slack-alert
-              params:
-                icon_emoji: ":robot_face:"
-                username: Build pipeline
-                channel: "#lambr-private"
-                text: "build-release failed"
-
-      - put: stackdriver-tools-artifacts
-        params: {file: candidate/*.tgz}
-
-      - put: stackdriver-tools-artifacts-sha256
-        params: {file: candidate/*.tgz.sha256}
-
+          command: up
+          name: ((bbl_env_name))
+          args:
+            lb-cert: /tmp/build/put/lb_cert/cert.pem
+            lb-key: /tmp/build/put/lb_key/key.pem
+      # Gets the CF deployment source (manifest/releases/operations)
+      - get: cf-deployment-source
+      # Gets the latest ubuntu stemcell
+      - get: gcp-xenial-stemcells
+      # Patches the deployment manifest to use the stemcell provided by the previous step.
+      - task: update-manifest
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source:
+              repository: mikefarah/yq
+          inputs:
+            - name: cf-deployment-source
+            - name: gcp-xenial-stemcells
+          outputs:
+            - name: edited-manifest
+          run:
+            path: sh
+            args: ["-c", "mkdir -p edited-manifest && yq w cf-deployment-source/cf-deployment.yml stemcells[0].version \"$(cat gcp-xenial-stemcells/version)\" > edited-manifest/cf-deployment.yml"]
+      # Performs a BOSH deploy to deploy Cloud Foundry on the BOSH director
+      - put: cf
+        params:
+          source_file: bbl-state/bdr-source-file
+          manifest: edited-manifest/cf-deployment.yml
+          stemcells:
+            - gcp-xenial-stemcells/stemcell.tgz
+          vars:
+            enable_ssl: false
+            system_domain: ((domain_name))
+          ops_files:
+            - cf-deployment-source/operations/scale-to-one-az.yml
+            - cf-deployment-source/operations/use-compiled-releases.yml
+  # BOSH/CF Deploy Pipeline
+  # TODO add CF down
+  - name: cf-down
+    serial: true
+    plan:
+    - get: bbl-state
+    - put: bbl-state
+      params:
+        command: down
+        state_dir: bbl-state
+  # Stackdriver-tools CI/CD
+  - name: unit-test
+    plan:
+      - get: source
+        attempts: 2
+        trigger: true
+      - task: unit-test
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source:
+              repository: golang
+          inputs:
+            - name: source
+          run:
+            dir: source
+            path: ./ci/setup-gopath.sh
+            args: [make, get-deps, lint, test, build]
   - name: build-tile
+    serial: true
     plan:
-      - aggregate:
-        - {trigger: true,  passed: [build-candidate],   get: stackdriver-tools,                resource: stackdriver-tools-in}
-        - {trigger: true,  passed: [build-candidate],   get: stackdriver-tools-artifacts,      resource: stackdriver-tools-artifacts}
-        - {trigger: false,                              get: version-semver,                   resource: version-semver}
-
-      - task: build-tile
-        file: stackdriver-tools/ci/tasks/build-tile.yml
-        params:
-          tile_name: stackdriver-nozzle
-          tile_label: Stackdriver Nozzle
-        on_failure:
-          aggregate:
-            - put: slack-alert
-              params:
-                icon_emoji: ":robot_face:"
-                username: Build pipeline
-                channel: "#lambr-private"
-                text: "build-tile failed"
-
+      - get: source
+        attempts: 2
+        trigger: true
+        passed: [unit-test]
+      - task: tile
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source:
+              repository: m0pt0pmatt/tile-generator
+          inputs:
+            - name: source
+          outputs:
+            - name: tile-out
+          run:
+            dir: source
+            path: sh
+            args: [-c, "apk add --no-cache make git ruby && make tile && cp stackdriver-nozzle*.pivotal* ../tile-out/"]
       - put: stackdriver-nozzle-tile
-        params: {file: candidate/*.pivotal}
-
+        params: {file: tile-out/*.pivotal}
       - put: stackdriver-nozzle-tile-sha256
-        params: {file: candidate/*.pivotal.sha256}
-
-  - name: deploy-candidate
+        params: {file: tile-out/*.pivotal.sha256}
+  - name: build-bosh-release
+    serial: true
     plan:
-      - aggregate:
-        - {trigger: true,  passed: [build-candidate],  get: stackdriver-tools,                resource: stackdriver-tools-in}
-        - {trigger: true,  passed: [build-candidate],  get: stackdriver-tools-artifacts,      resource: stackdriver-tools-artifacts}
-        - {trigger: false, passed: [build-candidate],  get: stackdriver-tools-artifacts-sha256, resource: stackdriver-tools-artifacts-sha256}
-        - {trigger: false,                             get: version-semver,                   resource: version-semver}
-
-      - task: deploy-candidate
-        file: stackdriver-tools/ci/tasks/deploy-candidate.yml
+      - get: source
         attempts: 2
-        on_failure:
-          aggregate:
-            - put: slack-alert
-              params:
-                icon_emoji: ":robot_face:"
-                username: Build pipeline
-                channel: "#lambr-private"
-                text: "deploy-candidate failed"
-        params:
-          ssh_bastion_address: {{ssh_bastion_address}}
-          ssh_user: {{ssh_user}}
-          ssh_key: {{ssh_key}}
-          bosh_director_address: {{bosh_director_address}}
-          bosh_user: {{bosh_user}}
-          bosh_password: {{bosh_password}}
-          google_region: {{google_region}}
-          google_zone: {{google_zone}}
-          network: {{network}}
-          public_subnetwork: {{public_subnetwork}}
-          private_subnetwork: {{private_subnetwork}}
-          cf_project_id: {{cf_project_id}}
-          cf_service_account: {{cf_service_account}}
-          firehose_username: {{firehose_username}}
-          firehose_password: {{firehose_password}}
-          cf_api_url: {{cf_api_url}}
-          service_account_key_json: {{service_account_key_json}}
-          cf_service_account_json: {{cf_service_account_json}}
-
-  - name: promote-candidate 
-    plan:
-      - aggregate:
-        - {trigger: true,  passed: [build-tile],        get: stackdriver-nozzle-tile,          resource: stackdriver-nozzle-tile}
-        - {trigger: true,  passed: [deploy-candidate],  get: stackdriver-tools,                resource: stackdriver-tools-in}
-        - {trigger: true,  passed: [deploy-candidate],  get: stackdriver-tools-artifacts,      resource: stackdriver-tools-artifacts}
-        - {trigger: false, passed: [deploy-candidate],  get: stackdriver-tools-artifacts-sha256, resource: stackdriver-tools-artifacts-sha256}
-
-      - task: promote-candidate
-        file: stackdriver-tools/ci/tasks/promote-candidate.yml
-        attempts: 2
-        on_failure:
-          aggregate:
-            - put: slack-alert
-              params:
-                icon_emoji: ":robot_face:"
-                username: Build pipeline
-                channel: "#lambr-private"
-                text: "promote-candidate failed"
-
+        trigger: true
+        passed: [unit-test]
+      - task: bosh-release
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source:
+              repository: m0pt0pmatt/tile-generator
+          inputs:
+            - name: source
+          outputs:
+            - name: bosh-release-out
+          run:
+            dir: source
+            path: sh
+            args: [-c, "apk add --no-cache make git && pwd && make bosh-release && cp stackdriver-tools-release-*.tar.gz* ../bosh-release-out/"]
       - put: stackdriver-tools-artifacts
-        params: {file: candidate/latest.tgz}
-
+        params: {file: bosh-release-out/stackdriver-tools-release-*.tar.gz}
       - put: stackdriver-tools-artifacts-sha256
-        params: {file: candidate/latest.tgz.sha256}
-
-      - put: stackdriver-nozzle-tile
-        params: {file: candidate/latest.pivotal}
+        params: {file: bosh-release-out/stackdriver-tools-release-*.tar.gz.sha256}
+  - name: deploy-bosh-release
+    serial: true
+    plan:
+      - get: bbl-state
+        trigger: true
+        passed: [cf-up]
+      - get: source
+        attempts: 2
+        trigger: true
+        passed: [build-bosh-release]
+      - get: gcp-xenial-stemcells
+      - get: stackdriver-tools-artifacts
+        trigger: true
+        passed: [build-bosh-release]
+      # this should be moved to the job which creates the bosh environment. It's here for quick troubleshooting.
+      - task: update-runtime-config
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source:
+              repository: pivotalcfreleng/bbl
+          inputs:
+            - name: bbl-state
+            - name: bosh-deployment-source
+          run:
+            dir: bbl-state
+            path: sh
+            args: [-c, "eval \"$(bbl print-env)\" && bosh --non-interactive update-runtime-config ../source/ci/runtime-config.yml"]
+      - put: stackdriver-tools-release
+        params:
+          source_file: bbl-state/bdr-source-file
+          manifest: source/manifests/stackdriver-tools.yml
+          stemcells:
+            - gcp-xenial-stemcells/stemcell.tgz
+          releases:
+            - stackdriver-tools-artifacts/stackdriver*
+          vars:
+            firehose_endpoint: ((firehose_endpoint))
+            firehose_username: ((firehose_username))
+            firehose_password: ((firehose_password))
+            skip_ssl: true
+            gcp_project_id: ((gcp_project_id))
+            gcp_service_account_json: ((service_account_key_json))
 
 resources:
-  - name: stackdriver-tools-in
+  # BOSH Director resource. Represents the state of BOSH.
+  - name: bbl-state
+    type: bbl-state-resource
+    source:
+      bucket: ((bbl-state-bucket))
+      iaas: gcp
+      lb_type: cf
+      lb_domain: ((domain_name))
+      gcp_region: us-east1
+      gcp_service_account_key: ((service_account_key_json))
+  # Cloud Foundry resource. Represents the state of the Cloud Foundry BOSH deployment.
+  - name: cf
+    type: bosh-deployment
+    source:
+      deployment: cf
+      source_file: bbl-state/bdr-source-file
+  - name: stackdriver-tools-release
+    type: bosh-deployment
+    source:
+      deployment: stackdriver-nozzle
+      source_file: bbl-state/bdr-source-file
+  # Source code for The Cloud Foundry BOSH deployment. Contains the deploy manifest and the BOSH releases.
+  - name: cf-deployment-source
+    type: git
+    source:
+      uri: https://github.com/cloudfoundry/cf-deployment.git
+      branch: master
+  - name: bosh-deployment-source
+    type: git
+    source:
+      uri: https://github.com/cloudfoundry/bosh-deployment.git
+      branch: master
+  # Resource for the stemcell used by Cloud Foundry.
+  - name: gcp-xenial-stemcells
+    type: bosh-io-stemcell
+    source:
+      name: bosh-google-kvm-ubuntu-xenial-go_agent
+  # Resource for stackdriver-tools source code.
+  - name: source
     type: git
     source:
       uri: https://github.com/cloudfoundry-community/stackdriver-tools.git
-      branch: master
+      branch: update-ci
       ignore_paths:
         - .final_builds/**/*.yml
         - releases/**/*.yml
-
+  # Resource for stackdriver-tools' bosh releases.
   - name: stackdriver-tools-artifacts
     type: gcs-resource
     source:
-      json_key: {{service_account_key_json}}
-      bucket:   {{bucket_name}}
-      regexp:   beta/stackdriver-tools/stackdriver-tools([0-9]+\.[0-9]+\.[0-9]+)\.tgz
-
+      json_key: ((service_account_key_json))
+      bucket: ((resources_bucket_name))
+      regexp: beta/stackdriver-tools/stackdriver-tools-release-.*.tar.gz
+  # Resource for stackdriver-tools' bosh releases' sha256 hashes.
   - name: stackdriver-tools-artifacts-sha256
     type: gcs-resource
     source:
-      json_key: {{service_account_key_json}}
-      bucket:   {{bucket_name}}
-      regexp:   beta/stackdriver-tools/stackdriver-tools([0-9]+\.[0-9]+\.[0-9]+)\.tgz.sha256
-
+      json_key: ((service_account_key_json))
+      bucket: ((resources_bucket_name))
+      regexp: beta/stackdriver-tools/stackdriver-tools-release-.*.tar.gz.sha256
+  # Resource for stackdriver-tools' tiles.
   - name: stackdriver-nozzle-tile
     type: gcs-resource
     source:
-      json_key: {{service_account_key_json}}
-      bucket:   {{bucket_name}}
-      regexp:   beta/stackdriver-tools/stackdriver-nozzle-tile([0-9]+\.[0-9]+\.[0-9]+)\.pivotal
-
+      json_key: ((service_account_key_json))
+      bucket: ((resources_bucket_name))
+      regexp: beta/stackdriver-tools/stackdriver-nozzle-.*.pivotal
+  # Resource for stackdriver-tools' bosh tiles' sha256 hashes.
   - name: stackdriver-nozzle-tile-sha256
     type: gcs-resource
     source:
-      json_key: {{service_account_key_json}}
-      bucket:   {{bucket_name}}
-      regexp:   beta/stackdriver-tools/stackdriver-nozzle-tile([0-9]+\.[0-9]+\.[0-9]+)\.pivotal.sha256
-
-  - name: version-semver
-    type: semver
-    source:
-      key:               beta/stackdriver-tools/current-version
-      bucket:            {{bucket_name}}
-      access_key_id:     {{bucket_access_key}}
-      secret_access_key: {{bucket_secret_key}}
-      region:            US
-      endpoint:          storage.googleapis.com
-
-  - name: slack-alert
-    type: slack-notification
-    source:
-      url: {{slack-hook}}
-
+      json_key: ((service_account_key_json))
+      bucket: ((resources_bucket_name))
+      regexp: beta/stackdriver-tools/stackdriver-nozzle-.*.pivotal.sha256
 
 resource_types:
+  - name: bbl-state-resource
+    type: docker-image
+    source:
+      repository: cfinfrastructure/bbl-state-resource
+  - name: bosh-deployment
+    type: docker-image
+    source:
+      repository: cloudfoundry/bosh-deployment-resource
   - name: gcs-resource
     type: docker-image
     source:
       repository: frodenas/gcs-resource
-
-  - name: slack-notification
-    type: docker-image
-    source:
-      repository: cfcommunity/slack-notification-resource
-      tag: latest

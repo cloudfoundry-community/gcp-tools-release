@@ -8,7 +8,7 @@ releases:
 # This block does not belong in here or needs to be specialized for GCP in a different way
 stemcells:
 - alias: default
-  name: bosh-google-kvm-ubuntu-trusty-go_agent
+  name: bosh-google-kvm-ubuntu-xenial-go_agent
   version: latest
 
 instance_groups:
@@ -33,9 +33,9 @@ instance_groups:
     release: stackdriver-tools
   properties:
     rlp:
-      ca_cert: ((stackdriver_nozzle_cert.ca))
-      cert: ((stackdriver_nozzle_cert.certificate))
-      key: ((stackdriver_nozzle_cert.private_key))
+      ca_cert: ((/bosh-stackdriver-tools/cf/loggregator_ca.certificate))
+      cert: ((stackdriver_nozzle.certificate))
+      key: ((stackdriver_nozzle.private_key))
     firehose:
       endpoint: ((firehose_endpoint))
       username: ((firehose_username))
@@ -56,15 +56,10 @@ update:
   update_watch_time: 1000-60000
 
 variables:
-  - name: stackdriver_nozzle_ca
+  - name: stackdriver_nozzle
     type: certificate
     options:
-      is_ca: true
-      common_name: stackdriver-nozzle-ca
-  - name: stackdriver_nozzle_cert
-    type: certificate
-    options:
-      ca: stackdriver_nozzle_ca
+      ca: /bosh-stackdriver-tools/cf/loggregator_ca
       common_name: stackdriver-nozzle
       extended_key_usage:
         - client_auth

@@ -1,13 +1,13 @@
 .EXPORT_ALL_VARIABLES:
-COMMIT_HASH := $(shell git show-ref HEAD | cut -d' ' -f 1)
-LATEST_TAG := $(shell git describe --abbrev=0 --tags)
+COMMIT_HASH := $(shell git rev-parse HEAD)
 TIMESTAMP := $(shell date +%s)
-VERSION ?= $(shell git describe --tags --exact-match `git rev-parse HEAD` 2>/dev/null || echo 0.0.$(TIMESTAMP)-custom.$$(git rev-parse --short HEAD))
+VERSION ?= $(shell git describe --tags --exact-match `git rev-parse HEAD` 2>/dev/null || echo 0.0.$(TIMESTAMP)-custom.$(COMMIT_HASH))
 TILE_NAME ?= $(shell if [ `echo $(VERSION) | grep -o custom` ]; then echo stackdriver-nozzle-custom; else echo stackdriver-nozzle; fi)
 TILE_LABEL ?= $(shell if [ `echo $(VERSION) | grep -o custom` ]; then echo "Stackdriver Nozzle (custom build)"; else echo Stackdriver Nozzle; fi)
 TILE_FILENAME := $(TILE_NAME)-$(VERSION).pivotal
 TILE_SHA256 := $(TILE_FILENAME).sha256
 RELEASE_TARBALL := stackdriver-tools-release-$(VERSION).tar.gz
+RELEASE_SHA256 := $(RELEASE_TARBALL).sha256
 RELEASE_PATH := $(PWD)/$(RELEASE_TARBALL)
 
 build: test
@@ -45,12 +45,13 @@ bosh-release:
 	echo $(VERSION) > src/stackdriver-nozzle/release
 	bosh sync-blobs
 	bosh create-release --name=stackdriver-tools --version=$(VERSION) --tarball=$(RELEASE_TARBALL) --force --sha2
+	sha256sum $(RELEASE_TARBALL) | cut -d' ' -f 1 > $(RELEASE_SHA256)
 
 tile: bosh-release
 	erb tile.yml.erb > tile.yml
 	tile build $(VERSION)
 	mv product/$(TILE_FILENAME) $(TILE_FILENAME)
-	echo -n $((sha256sum $(TILE_FILENAME) | cut -d' ' -f 1)) > $(TILE_SHA256)
+	sha256sum $(TILE_FILENAME) | cut -d' ' -f 1 > $(TILE_SHA256)
 
 clean:
 	go clean ./...
