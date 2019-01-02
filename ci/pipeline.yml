@@ -29,6 +29,21 @@ jobs:
           args:
             lb-cert: /tmp/build/put/lb_cert/cert.pem
             lb-key: /tmp/build/put/lb_key/key.pem
+      # Update runtime config to add BOSH DNS
+      - task: update-runtime-config
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source:
+              repository: pivotalcfreleng/bbl
+          inputs:
+            - name: bbl-state
+            - name: bosh-deployment-source
+          run:
+            dir: bbl-state
+            path: sh
+            args: [-c, "eval \"$(bbl print-env)\" && bosh --non-interactive update-runtime-config ../source/ci/runtime-config.yml"]
       # Gets the CF deployment source (manifest/releases/operations)
       - get: cf-deployment-source
       # Gets the latest ubuntu stemcell
@@ -157,21 +172,6 @@ jobs:
       - get: stackdriver-tools-artifacts
         trigger: true
         passed: [build-bosh-release]
-      # this should be moved to the job which creates the bosh environment. It's here for quick troubleshooting.
-      - task: update-runtime-config
-        config:
-          platform: linux
-          image_resource:
-            type: docker-image
-            source:
-              repository: pivotalcfreleng/bbl
-          inputs:
-            - name: bbl-state
-            - name: bosh-deployment-source
-          run:
-            dir: bbl-state
-            path: sh
-            args: [-c, "eval \"$(bbl print-env)\" && bosh --non-interactive update-runtime-config ../source/ci/runtime-config.yml"]
       - put: stackdriver-tools-release
         params:
           source_file: bbl-state/bdr-source-file
@@ -215,11 +215,6 @@ resources:
     type: git
     source:
       uri: https://github.com/cloudfoundry/cf-deployment.git
-      branch: master
-  - name: bosh-deployment-source
-    type: git
-    source:
-      uri: https://github.com/cloudfoundry/bosh-deployment.git
       branch: master
   # Resource for the stemcell used by Cloud Foundry.
   - name: gcp-xenial-stemcells

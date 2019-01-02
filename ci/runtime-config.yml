@@ -24,4 +24,4 @@ addons:
             client:
               tls: ((/dns_api_client_tls))
     include:
-      deployments: [cf, stackdriver-nozzle]
+      deployments: [stackdriver-nozzle]
