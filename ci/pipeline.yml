@@ -230,8 +230,8 @@ resources:
   - name: source
     type: git
     source:
-      uri: https://github.com/cloudfoundry-community/stackdriver-tools.git
-      branch: update-ci
+      uri: ((stackdriver_tools_uri))
+      branch: ((stackdriver_tools_branch))
       ignore_paths:
         - .final_builds/**/*.yml
         - releases/**/*.yml
