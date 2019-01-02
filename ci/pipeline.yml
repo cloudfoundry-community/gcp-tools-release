@@ -39,7 +39,6 @@ jobs:
               repository: pivotalcfreleng/bbl
           inputs:
             - name: bbl-state
-            - name: bosh-deployment-source
           run:
             dir: bbl-state
             path: sh
