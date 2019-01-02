@@ -157,7 +157,6 @@ jobs:
       - get: stackdriver-tools-artifacts
         trigger: true
         passed: [build-bosh-release]
-      - get: bosh-deployment-source
       # this should be moved to the job which creates the bosh environment. It's here for quick troubleshooting.
       - task: update-runtime-config
         config:
@@ -172,7 +171,7 @@ jobs:
           run:
             dir: bbl-state
             path: sh
-            args: [-c, "eval \"$(bbl print-env)\" && bosh --non-interactive update-runtime-config ../bosh-deployment-source/runtime-configs/dns.yml --name dns"]
+            args: [-c, "eval \"$(bbl print-env)\" && bosh --non-interactive update-runtime-config ../source/ci/runtime-config.yml"]
       - put: stackdriver-tools-release
         params:
           source_file: bbl-state/bdr-source-file
