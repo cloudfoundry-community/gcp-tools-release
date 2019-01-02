@@ -81,7 +81,7 @@ case "$1" in
   # custom-tile build uses the customized tile-generator image
   # to build the stackdriver-tools BOSH release and the custom tile.
   IMAGE="$(docker images -q tile-generator:latest)"
-  if test -z "$IMAGE"; then
+  if test -z "${IMAGE}"; then
     echo "Custom tile generator image not found, running setup."
     setup
   fi

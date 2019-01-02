@@ -11,7 +11,7 @@ ln -s ${PWD} ${gopath_prefix}/stackdriver-tools
 
 # Configure GOPATH
 export GOPATH=/tmp
-export PATH=${GOPATH}/bin:$PATH
+export PATH=${GOPATH}/bin:${PATH}
 
 # Run tests
 cd ${gopath_prefix}/stackdriver-tools/

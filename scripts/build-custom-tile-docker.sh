@@ -2,7 +2,7 @@
 
 # This script builds a BOSH release of stackdriver-tools and uses the tile
 # generator to package it into a tile. It expects VERSION to be set to a valid
-# semantic version, GOPATH to be set, and PATH to include $GOPATH/bin, which
+# semantic version, GOPATH to be set, and PATH to include ${GOPATH}/bin, which
 # must contain the `bosh2`, `golint` and `ginkgo` binaries.
 #
 # It is meant to be run by the custom-tile.sh script within a container, but

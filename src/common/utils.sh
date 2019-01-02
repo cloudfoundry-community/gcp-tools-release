@@ -14,7 +14,7 @@ pid_guard() {
     pid=$(head -1 "${pidfile}")
 
     if [[ -n "${pid}" ]] && [[ -e /proc/${pid} ]]; then
-      echo "$name is already running, please stop it first"
+      echo "${name} is already running, please stop it first"
       exit 1
     fi
 
@@ -40,7 +40,7 @@ wait_pidfile() {
 
     if [[ -e /proc/${pid} ]]; then
       if [[ "${try_kill}" = "1" ]]; then
-        echo "Killing $pidfile: $pid "
+        echo "Killing ${pidfile}: ${pid} "
         kill ${pid}
       fi
       while [[ -e /proc/${pid} ]]; do
@@ -49,7 +49,7 @@ wait_pidfile() {
         if [[ ${timeout} -gt 0 ]]; then
           if [[ ${countdown} -eq 0 ]]; then
             if [[ "${force}" = "1" ]]; then
-              echo -ne "\nKill timed out, using kill -9 on $pid... "
+              echo -ne "\nKill timed out, using kill -9 on ${pid}... "
               kill -9 ${pid}
               sleep 0.5
             fi

@@ -67,15 +67,15 @@ fi
 find_libjvm_so () {
     local java_lib_dir
     local java_home=$(dirname "$(readlink -f "$(bash -lc "which java 2>/dev/null")")")/..
-    [[ "$java_home" = "./.." ]] && return
+    [[ "${java_home}" = "./.." ]] && return
     local lib_subdirs=("lib/amd64/server" "lib/x64/server" "lib/i386/server")
     local lib_subdirs_with_jre=()
     for subdir in "${lib_subdirs[@]}"; do
-        lib_subdirs_with_jre+=("$subdir" "jre/$subdir")
+        lib_subdirs_with_jre+=("${subdir}" "jre/${subdir}")
     done
-    for libdir in "${lib_subdirs_with_jre[@]/#/$java_home/}"; do
+    for libdir in "${lib_subdirs_with_jre[@]/#/${java_home}/}"; do
         if [[ -f "${libdir}/libjvm.so" ]]; then
-            java_lib_dir="$libdir"
+            java_lib_dir="${libdir}"
             break
         fi
     done
@@ -137,7 +137,7 @@ gen_config() {
     fi
     AUTOGENERATE_HEADER="# NOTE: This file is auto-generated and will be overwritten unless you set
 #     AUTOGENERATE_COLLECTD_CONFIG=\"no\"
-# in /etc/default/$NAME
+# in /etc/default/${NAME}
 "
     if [[ -z "${USE_GCM_API}" && -n "${DETECT_GCM}" ]]; then
         # automatically determine if we should be using the GCM API
@@ -159,8 +159,8 @@ gen_config() {
         fi
     fi
     # now see if we should be using write_gcm and use the appropriate template if so
-    if [[ "$USE_GCM_API" = "yes" ]]; then
-        echo "$AUTOGENERATE_HEADER" > ${CONFIGFILE}
+    if [[ "${USE_GCM_API}" = "yes" ]]; then
+        echo "${AUTOGENERATE_HEADER}" > ${CONFIGFILE}
         cat ${GCM_CONFIG_TEMPLATE} >> ${CONFIGFILE}
         return
     fi
@@ -210,7 +210,7 @@ check_config() {
 d_start() {
     if test "${DISABLE}" != 0; then
         # we get here during restart
-        log_progress_msg "disabled by /etc/default/$NAME"
+        log_progress_msg "disabled by /etc/default/${NAME}"
         return 3
     fi
 
@@ -231,30 +231,30 @@ d_start() {
     fi
 
     if test "${USE_COLLECTDMON}" == 1; then
-        LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/opt/stackdriver/collectd/lib64:/opt/stackdriver/collectd/lib" start-stop-daemon --start --quiet --oknodo --pidfile "$_PIDFILE" \
-            --exec ${COLLECTDMON_DAEMON} -- -P "$_PIDFILE" -- -C "${CONFIGFILE}" \
+        LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/opt/stackdriver/collectd/lib64:/opt/stackdriver/collectd/lib" start-stop-daemon --start --quiet --oknodo --pidfile "${_PIDFILE}" \
+            --exec ${COLLECTDMON_DAEMON} -- -P "${_PIDFILE}" -- -C "${CONFIGFILE}" \
             || return 2
     else
-        LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/opt/stackdriver/collectd/lib64:/opt/stackdriver/collectd/lib" start-stop-daemon --start --quiet --oknodo --pidfile "$_PIDFILE" \
-            --exec ${DAEMON} -- -C "${CONFIGFILE}" -P "$_PIDFILE" \
+        LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/opt/stackdriver/collectd/lib64:/opt/stackdriver/collectd/lib" start-stop-daemon --start --quiet --oknodo --pidfile "${_PIDFILE}" \
+            --exec ${DAEMON} -- -C "${CONFIGFILE}" -P "${_PIDFILE}" \
             || return 2
     fi
     return 0
 }
 
 still_running_warning="
-WARNING: $NAME might still be running.
+WARNING: ${NAME} might still be running.
 In large setups it might take some time to write all pending data to
-the disk. You can adjust the waiting time in /etc/default/$NAME."
+the disk. You can adjust the waiting time in /etc/default/${NAME}."
 
 # return:
 #   0 if the daemon has been stopped
 #   1 if the daemon was already stopped
 #   2 if daemon could not be stopped
 d_stop() {
-    PID=$( cat "$_PIDFILE" 2> /dev/null ) || true
+    PID=$( cat "${_PIDFILE}" 2> /dev/null ) || true
 
-    start-stop-daemon --stop --quiet --oknodo --pidfile "$_PIDFILE"
+    start-stop-daemon --stop --quiet --oknodo --pidfile "${_PIDFILE}"
     rc="$?"
 
     if test "${rc}" -eq 2; then
@@ -300,7 +300,7 @@ case "$1" in
         esac
         ;;
     status)
-        status_of_proc -p "$_PIDFILE" "${DAEMON}" "${NAME}" && exit 0 || exit $?
+        status_of_proc -p "${_PIDFILE}" "${DAEMON}" "${NAME}" && exit 0 || exit $?
         ;;
     restart|force-reload)
         log_daemon_msg "Restarting ${DESC}" "${NAME}"
