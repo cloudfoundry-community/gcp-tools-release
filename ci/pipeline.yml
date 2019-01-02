@@ -29,6 +29,8 @@ jobs:
           args:
             lb-cert: /tmp/build/put/lb_cert/cert.pem
             lb-key: /tmp/build/put/lb_key/key.pem
+      - get: source
+        attempts: 2
       # Update runtime config to add BOSH DNS
       - task: update-runtime-config
         config:
@@ -39,6 +41,7 @@ jobs:
               repository: pivotalcfreleng/bbl
           inputs:
             - name: bbl-state
+            - name: source
           run:
             dir: bbl-state
             path: sh
@@ -196,7 +199,7 @@ resources:
       iaas: gcp
       lb_type: cf
       lb_domain: ((domain_name))
-      gcp_region: us-east1
+      gcp_region: ((gcp_region))
       gcp_service_account_key: ((service_account_key_json))
   # Cloud Foundry resource. Represents the state of the Cloud Foundry BOSH deployment.
   - name: cf
