@@ -198,12 +198,25 @@ jobs:
           releases:
             - stackdriver-tools-artifacts/stackdriver*
           vars:
-            firehose_endpoint: ((firehose_endpoint))
-            firehose_username: ((firehose_username))
-            firehose_password: ((firehose_password))
-            skip_ssl: true
+            firehose_endpoint: ((cf_api_endpoint))
+            firehose_username: ((cf_username))
+            firehose_password: ((cf_password))
+            skip_ssl: ((skip_ssl))
             gcp_project_id: ((gcp_project_id))
             gcp_service_account_json: ((service_account_key_json))
+  - name: deploy-stackdriver-spinner
+    serial: true
+    plan:
+      - get: source
+        attempts: 2
+        trigger: true
+        passed: [deploy-bosh-release]
+      - put: stackdriver-spinner
+        params:
+          manifest: source/src/stackdriver-spinner/manifest.yml
+          environment_variables:
+            GOOGLE_APPLICATION_CREDENTIALS: ((service_account_key_json))
+            GCP_PROJECT: ((gcp_project_id))
 
 resources:
   # BOSH Director resource. Represents the state of BOSH.
@@ -275,6 +288,15 @@ resources:
       json_key: ((service_account_key_json))
       bucket: ((resources_bucket_name))
       regexp: beta/stackdriver-tools/stackdriver-nozzle-.*.pivotal.sha256
+  - name: stackdriver-spinner
+    type: cf
+    source:
+      api: ((cf_api_endpoint))
+      username: ((cf_username))
+      password: ((cf_password))
+      organization: ((spinner_org))
+      space: ((spinner_space))
+      skip_cert_check: ((skip_ssl))
 
 resource_types:
   - name: bbl-state-resource
