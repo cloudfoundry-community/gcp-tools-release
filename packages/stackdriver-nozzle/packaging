@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 set -e # exit immediately if a simple command exits with a non-zero status
 set -u # report the usage of uninitialized variables
 
@@ -19,5 +21,3 @@ go build -ldflags "-X github.com/cloudfoundry-community/stackdriver-tools/src/st
 # Copy BOSH Google CPI package
 mkdir -p ${BOSH_INSTALL_TARGET}/bin
 cp -a ${NOZZLE_PATH}/stackdriver-nozzle/out/stackdriver-nozzle ${BOSH_INSTALL_TARGET}/bin/
-
-
