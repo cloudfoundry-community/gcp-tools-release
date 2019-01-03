@@ -10,17 +10,11 @@ RELEASE_TARBALL := stackdriver-tools-release-$(VERSION).tar.gz
 RELEASE_SHA256 := $(RELEASE_TARBALL).sha256
 RELEASE_PATH := $(PWD)/$(RELEASE_TARBALL)
 
-build: test
+build:
 	go build -v ./...
 
-build-all:
-	gox -output="out/stackdriver-nozzle_{{.OS}}_{{.Arch}}" -ldflags="-X github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-nozzle/version.release=`cat release 2>/dev/null`" .
-
 test:
-	go test -v $(shell go list ./... | grep -v github.com/cloudfoundry-community/stackdriver-tools/ci | grep -v gopath)
-
-integration-test:
-	go test -v $(shell go list ./... | grep github.com/cloudfoundry-community/stackdriver-tools/ci | grep -v gopath)
+	go test -v ./...
 
 lint:
 	# Tests for output
@@ -59,5 +53,6 @@ clean:
 	rm -f stackdriver-nozzle*.pivotal
 	rm -f stackdriver-nozzle*.pivotal.sha256
 	rm -f tile.yml tile-history.yml
+	rm -fr blobs dev_releases product release .blobs .dev_builds
 
 .PHONY: build test integration-test lint get-deps clean tile bosh-release
