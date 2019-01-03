@@ -18,7 +18,8 @@ releases/**/*.tgz
 #*
 product/
 **/credentials.json
-stackdriver-tools-release-*.tar.gz
+stackdriver-tools-release*.tar.gz
+stackdriver-tools-release*.tar.gz.sha256
 stackdriver-nozzle*.pivotal
 stackdriver-nozzle*.pivotal.sha256
 tile.yml
