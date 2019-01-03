@@ -6,7 +6,7 @@ applications:
   env:
     GOPACKAGENAME: github.com/cloudfoundry-community/stackdriver-tools/src/stackdriver-spinner
     GOVERSION: go1.11
-    GOOGLE_APPLICATION_CREDENTIALS: changeme
+    GOOGLE_APPLICATION_CREDENTIALS: ./credentials.json
     SPINNER_COUNT: 999
     SPINNER_WAIT: 300
     GCP_PROJECT: <project-name>

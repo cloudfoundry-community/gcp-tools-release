@@ -211,11 +211,28 @@ jobs:
         attempts: 2
         trigger: true
         passed: [deploy-bosh-release]
+      - task: write-cert
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source:
+              repository: alpine
+          params:
+            GOOGLE_APPLICATION_CREDENTIALS: ((service_account_key_json))
+          run:
+            path: sh
+            args: ["-c", "cp -R source/* source_with_creds/ && echo \"${GOOGLE_APPLICATION_CREDENTIALS}\" > source_with_creds/src/stackdriver-spinner/credentials.json"]
+          inputs:
+            - name: source
+          outputs:
+            - name: source_with_creds
       - put: stackdriver-spinner
         params:
-          manifest: source/src/stackdriver-spinner/manifest.yml
+          path: source_with_creds/src/stackdriver-spinner/
+          manifest: source_with_creds/src/stackdriver-spinner/manifest.yml
           environment_variables:
-            GOOGLE_APPLICATION_CREDENTIALS: ((service_account_key_json))
+            GOOGLE_APPLICATION_CREDENTIALS: credentials.json
             GCP_PROJECT: ((gcp_project_id))
 
 resources:
