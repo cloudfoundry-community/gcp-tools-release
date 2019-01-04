@@ -339,6 +339,7 @@ jobs:
             GCP_PROJECT: ((gcp_project_id))
             GOOGLE_PROJECT: ((gcp_project_id))
             GOOGLE_APPLICATION_CREDENTIALS: ((service_account_key_json))
+            STACKDRIVER_TOOLS_SOURCE_URI: ((stackdriver_tools_uri))
           run:
             path: stackdriver-tools-source/ci/tasks/prep-example-app.sh
           inputs:
