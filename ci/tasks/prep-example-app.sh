@@ -5,7 +5,7 @@ set -e
 cp -R stackdriver-tools-source/* prepped_source/
 echo "${GOOGLE_APPLICATION_CREDENTIALS}" > prepped_source/examples/cf-stackdriver-example/credentials.json
 cd stackdriver-tools-source
-go build
+
 cat <<EOF > ../prepped_source/examples/cf-stackdriver-example/source-context.json
 
 {
@@ -15,3 +15,6 @@ cat <<EOF > ../prepped_source/examples/cf-stackdriver-example/source-context.jso
   }
 }
 EOF
+
+cd ../prepped_source/examples/cf-stackdriver-example/source-context.json
+go build
