@@ -303,7 +303,7 @@ jobs:
           image_resource:
             type: docker-image
             source:
-              repository: alpine
+              repository: golang
           params:
             GOOGLE_APPLICATION_CREDENTIALS: ((service_account_key_json))
           run:

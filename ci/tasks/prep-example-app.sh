@@ -6,7 +6,8 @@ apk add git
 cp -R stackdriver-tools-source/* prepped_source/
 echo "${GOOGLE_APPLICATION_CREDENTIALS}" > prepped_source/examples/cf-stackdriver-example/credentials.json
 cd stackdriver-tools-source
-echo << EOF > ../prepped_source/examples/cf-stackdriver-example/source-context.json
+go build
+cat <<EOF > ../prepped_source/examples/cf-stackdriver-example/source-context.json
 
 {
   "git": {
