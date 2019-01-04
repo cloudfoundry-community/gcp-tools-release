@@ -16,5 +16,5 @@ cat <<EOF > ../prepped_source/examples/cf-stackdriver-example/source-context.jso
 }
 EOF
 
-cd ../prepped_source/examples/cf-stackdriver-example/source-context.json
+cd ../prepped_source/examples/cf-stackdriver-example/
 go build
