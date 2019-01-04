@@ -14,6 +14,101 @@
 # limitations under the License.
 #
 ---
+
+resource_types:
+  - name: bbl-state-resource
+    type: docker-image
+    source:
+      repository: cfinfrastructure/bbl-state-resource
+  - name: bosh-deployment
+    type: docker-image
+    source:
+      repository: cloudfoundry/bosh-deployment-resource
+  - name: gcs-resource
+    type: docker-image
+    source:
+      repository: frodenas/gcs-resource
+
+resources:
+  - name: bbl-state # BOSH Director resource. Represents the state of BOSH.
+    type: bbl-state-resource
+    source:
+      bucket: ((bbl-state-bucket))
+      iaas: gcp
+      lb_type: cf
+      lb_domain: ((domain_name))
+      gcp_region: ((gcp_region))
+      gcp_service_account_key: ((service_account_key_json))
+  - name: cf # BOSH deployment for Cloud Foundry.
+    type: bosh-deployment
+    source:
+      deployment: cf
+      source_file: bbl-state/bdr-source-file
+  - name: stackdriver-tools-release # BOSH deployment for the Stackdriver Nozzle
+    type: bosh-deployment
+    source:
+      deployment: stackdriver-nozzle
+      source_file: bbl-state/bdr-source-file
+  - name: cf-deployment-source # Source code for The Cloud Foundry BOSH deployment. Contains the deploy manifest and the BOSH releases.
+    type: git
+    source:
+      uri: https://github.com/cloudfoundry/cf-deployment.git
+      branch: master
+  - name: gcp-xenial-stemcells # stemcell used by BOSH deployments.
+    type: bosh-io-stemcell
+    source:
+      name: bosh-google-kvm-ubuntu-xenial-go_agent
+  - name: stackdriver-tools-source # stackdriver-tools source code.
+    type: git
+    source:
+      uri: ((stackdriver_tools_uri))
+      branch: ((stackdriver_tools_branch))
+      ignore_paths:
+        - .final_builds/**/*.yml
+        - releases/**/*.yml
+  - name: stackdriver-tools-artifacts # stackdriver-tools' bosh releases.
+    type: gcs-resource
+    source:
+      json_key: ((service_account_key_json))
+      bucket: ((resources_bucket_name))
+      regexp: beta/stackdriver-tools/stackdriver-tools-release-.*.tar.gz
+  - name: stackdriver-tools-artifacts-sha256 # stackdriver-tools' bosh releases' sha256 hashes.
+    type: gcs-resource
+    source:
+      json_key: ((service_account_key_json))
+      bucket: ((resources_bucket_name))
+      regexp: beta/stackdriver-tools/stackdriver-tools-release-.*.tar.gz.sha256
+  - name: stackdriver-nozzle-tile # stackdriver-tools' tiles.
+    type: gcs-resource
+    source:
+      json_key: ((service_account_key_json))
+      bucket: ((resources_bucket_name))
+      regexp: beta/stackdriver-tools/stackdriver-nozzle-.*.pivotal
+  - name: stackdriver-nozzle-tile-sha256 # stackdriver-tools' bosh tiles' sha256 hashes.
+    type: gcs-resource
+    source:
+      json_key: ((service_account_key_json))
+      bucket: ((resources_bucket_name))
+      regexp: beta/stackdriver-tools/stackdriver-nozzle-.*.pivotal.sha256
+  - name: stackdriver-spinner # Stackdriver Spinner CF deployment.
+    type: cf
+    source:
+      api: ((cf_api_endpoint))
+      username: ((cf_username))
+      password: ((cf_password))
+      organization: ((spinner_org))
+      space: ((spinner_space))
+      skip_cert_check: ((skip_ssl))
+  - name: example-app # Stackdriver tools example CF app.
+    type: cf
+    source:
+      api: ((cf_api_endpoint))
+      username: ((cf_username))
+      password: ((cf_password))
+      organization: ((example_app_org))
+      space: ((example_app_space))
+      skip_cert_check: ((skip_ssl))
+
 jobs:
   # BOSH/CF Deploy Pipeline
   - name: cf-up
@@ -44,7 +139,7 @@ jobs:
           args:
             lb-cert: /tmp/build/put/lb_cert/cert.pem
             lb-key: /tmp/build/put/lb_key/key.pem
-      - get: source
+      - get: stackdriver-tools-source
         attempts: 2
       # Update runtime config to add BOSH DNS
       - task: update-runtime-config
@@ -56,11 +151,11 @@ jobs:
               repository: pivotalcfreleng/bbl
           inputs:
             - name: bbl-state
-            - name: source
+            - name: stackdriver-tools-source
           run:
             dir: bbl-state
             path: sh
-            args: [-c, "eval \"$(bbl print-env)\" && bosh --non-interactive update-runtime-config ../source/ci/runtime-config.yml"]
+            args: [-c, "eval \"$(bbl print-env)\" && bosh --non-interactive update-runtime-config ../stackdriver-tools-source/ci/runtime-config.yml"]
       # Gets the CF deployment source (manifest/releases/operations)
       - get: cf-deployment-source
       # Gets the latest ubuntu stemcell
@@ -94,20 +189,10 @@ jobs:
           ops_files:
             - cf-deployment-source/operations/scale-to-one-az.yml
             - cf-deployment-source/operations/use-compiled-releases.yml
-  # BOSH/CF Deploy Pipeline
-  # TODO add CF down
-  - name: cf-down
-    serial: true
-    plan:
-    - get: bbl-state
-    - put: bbl-state
-      params:
-        command: down
-        state_dir: bbl-state
   # Stackdriver-tools CI/CD
   - name: unit-test
     plan:
-      - get: source
+      - get: stackdriver-tools-source
         attempts: 2
         trigger: true
       - task: unit-test
@@ -118,15 +203,15 @@ jobs:
             source:
               repository: golang
           inputs:
-            - name: source
+            - name: stackdriver-tools-source
           run:
-            dir: source
+            dir: stackdriver-tools-source
             path: ./ci/setup-gopath.sh
             args: [make, get-deps, lint, test, build]
   - name: build-tile
     serial: true
     plan:
-      - get: source
+      - get: stackdriver-tools-source
         attempts: 2
         trigger: true
         passed: [unit-test]
@@ -138,11 +223,11 @@ jobs:
             source:
               repository: m0pt0pmatt/tile-generator
           inputs:
-            - name: source
+            - name: stackdriver-tools-source
           outputs:
             - name: tile-out
           run:
-            dir: source
+            dir: stackdriver-tools-source
             path: sh
             args: [-c, "apk add --no-cache make git ruby && make tile && cp stackdriver-nozzle*.pivotal* ../tile-out/"]
       - put: stackdriver-nozzle-tile
@@ -152,7 +237,7 @@ jobs:
   - name: build-bosh-release
     serial: true
     plan:
-      - get: source
+      - get: stackdriver-tools-source
         attempts: 2
         trigger: true
         passed: [unit-test]
@@ -164,11 +249,11 @@ jobs:
             source:
               repository: m0pt0pmatt/tile-generator
           inputs:
-            - name: source
+            - name: stackdriver-tools-source
           outputs:
             - name: bosh-release-out
           run:
-            dir: source
+            dir: stackdriver-tools-source
             path: sh
             args: [-c, "apk add --no-cache make git && pwd && make bosh-release && cp stackdriver-tools-release-*.tar.gz* ../bosh-release-out/"]
       - put: stackdriver-tools-artifacts
@@ -181,7 +266,7 @@ jobs:
       - get: bbl-state
         trigger: true
         passed: [cf-up]
-      - get: source
+      - get: stackdriver-tools-source
         attempts: 2
         trigger: true
         passed: [build-bosh-release]
@@ -192,7 +277,7 @@ jobs:
       - put: stackdriver-tools-release
         params:
           source_file: bbl-state/bdr-source-file
-          manifest: source/manifests/stackdriver-tools.yml
+          manifest: stackdriver-tools-source/manifests/stackdriver-tools.yml
           stemcells:
             - gcp-xenial-stemcells/stemcell.tgz
           releases:
@@ -204,10 +289,11 @@ jobs:
             skip_ssl: ((skip_ssl))
             gcp_project_id: ((gcp_project_id))
             gcp_service_account_json: ((service_account_key_json))
+  # Deploy Spinner app
   - name: deploy-stackdriver-spinner
     serial: true
     plan:
-      - get: source
+      - get: stackdriver-tools-source
         attempts: 2
         trigger: true
         passed: [deploy-bosh-release]
@@ -222,9 +308,9 @@ jobs:
             GOOGLE_APPLICATION_CREDENTIALS: ((service_account_key_json))
           run:
             path: sh
-            args: ["-c", "cp -R source/* source_with_creds/ && echo \"${GOOGLE_APPLICATION_CREDENTIALS}\" > source_with_creds/src/stackdriver-spinner/credentials.json"]
+            args: ["-c", "cp -R stackdriver-tools-source/* source_with_creds/ && echo \"${GOOGLE_APPLICATION_CREDENTIALS}\" > source_with_creds/src/stackdriver-spinner/credentials.json"]
           inputs:
-            - name: source
+            - name: stackdriver-tools-source
           outputs:
             - name: source_with_creds
       - put: stackdriver-spinner
@@ -234,97 +320,34 @@ jobs:
           environment_variables:
             GOOGLE_APPLICATION_CREDENTIALS: credentials.json
             GCP_PROJECT: ((gcp_project_id))
-
-resources:
-  # BOSH Director resource. Represents the state of BOSH.
-  - name: bbl-state
-    type: bbl-state-resource
-    source:
-      bucket: ((bbl-state-bucket))
-      iaas: gcp
-      lb_type: cf
-      lb_domain: ((domain_name))
-      gcp_region: ((gcp_region))
-      gcp_service_account_key: ((service_account_key_json))
-  # Cloud Foundry resource. Represents the state of the Cloud Foundry BOSH deployment.
-  - name: cf
-    type: bosh-deployment
-    source:
-      deployment: cf
-      source_file: bbl-state/bdr-source-file
-  - name: stackdriver-tools-release
-    type: bosh-deployment
-    source:
-      deployment: stackdriver-nozzle
-      source_file: bbl-state/bdr-source-file
-  # Source code for The Cloud Foundry BOSH deployment. Contains the deploy manifest and the BOSH releases.
-  - name: cf-deployment-source
-    type: git
-    source:
-      uri: https://github.com/cloudfoundry/cf-deployment.git
-      branch: master
-  # Resource for the stemcell used by Cloud Foundry.
-  - name: gcp-xenial-stemcells
-    type: bosh-io-stemcell
-    source:
-      name: bosh-google-kvm-ubuntu-xenial-go_agent
-  # Resource for stackdriver-tools source code.
-  - name: source
-    type: git
-    source:
-      uri: ((stackdriver_tools_uri))
-      branch: ((stackdriver_tools_branch))
-      ignore_paths:
-        - .final_builds/**/*.yml
-        - releases/**/*.yml
-  # Resource for stackdriver-tools' bosh releases.
-  - name: stackdriver-tools-artifacts
-    type: gcs-resource
-    source:
-      json_key: ((service_account_key_json))
-      bucket: ((resources_bucket_name))
-      regexp: beta/stackdriver-tools/stackdriver-tools-release-.*.tar.gz
-  # Resource for stackdriver-tools' bosh releases' sha256 hashes.
-  - name: stackdriver-tools-artifacts-sha256
-    type: gcs-resource
-    source:
-      json_key: ((service_account_key_json))
-      bucket: ((resources_bucket_name))
-      regexp: beta/stackdriver-tools/stackdriver-tools-release-.*.tar.gz.sha256
-  # Resource for stackdriver-tools' tiles.
-  - name: stackdriver-nozzle-tile
-    type: gcs-resource
-    source:
-      json_key: ((service_account_key_json))
-      bucket: ((resources_bucket_name))
-      regexp: beta/stackdriver-tools/stackdriver-nozzle-.*.pivotal
-  # Resource for stackdriver-tools' bosh tiles' sha256 hashes.
-  - name: stackdriver-nozzle-tile-sha256
-    type: gcs-resource
-    source:
-      json_key: ((service_account_key_json))
-      bucket: ((resources_bucket_name))
-      regexp: beta/stackdriver-tools/stackdriver-nozzle-.*.pivotal.sha256
-  - name: stackdriver-spinner
-    type: cf
-    source:
-      api: ((cf_api_endpoint))
-      username: ((cf_username))
-      password: ((cf_password))
-      organization: ((spinner_org))
-      space: ((spinner_space))
-      skip_cert_check: ((skip_ssl))
-
-resource_types:
-  - name: bbl-state-resource
-    type: docker-image
-    source:
-      repository: cfinfrastructure/bbl-state-resource
-  - name: bosh-deployment
-    type: docker-image
-    source:
-      repository: cloudfoundry/bosh-deployment-resource
-  - name: gcs-resource
-    type: docker-image
-    source:
-      repository: frodenas/gcs-resource
+  # Deploy example app
+  - name: deploy-example-app
+    serial: true
+    plan:
+      - get: stackdriver-tools-source
+        attempts: 2
+        trigger: true
+        passed: [deploy-bosh-release]
+      - task: write-cert
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source:
+              repository: alpine
+          params:
+            GOOGLE_APPLICATION_CREDENTIALS: ((service_account_key_json))
+          run:
+            path: sh
+            args: ["-c", "cp -R stackdriver-tools-source/* source_with_creds/ && echo \"${GOOGLE_APPLICATION_CREDENTIALS}\" > source_with_creds/examples/cf-stackdriver-example/credentials.json"]
+          inputs:
+            - name: stackdriver-tools-source
+          outputs:
+            - name: source_with_creds
+      - put: example-app
+        params:
+          path: source_with_creds/examples/cf-stackdriver-example/
+          manifest: source_with_creds/examples/cf-stackdriver-example/manifest.yml
+          environment_variables:
+            GOOGLE_APPLICATION_CREDENTIALS: credentials.json
+            GCP_PROJECT: ((gcp_project_id))
