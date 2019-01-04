@@ -2,7 +2,6 @@
 
 set -e
 
-apk add git
 cp -R stackdriver-tools-source/* prepped_source/
 echo "${GOOGLE_APPLICATION_CREDENTIALS}" > prepped_source/examples/cf-stackdriver-example/credentials.json
 cd stackdriver-tools-source
