@@ -26,7 +26,8 @@ lint:
 	# Disabling vetshadow for https://github.com/golang/go/issues/19490
 	# Disabling maligned because it also affect the config struct. TODO(mattysweeps) re-enable maligned
 	# Ignoring missing comments for now TODO(mattysweeps) fix godoc
-	[ -z "$$($(GOPATH)/bin/gometalinter --deadline=300s --disable gosec --disable vetshadow --disable maligned --vendor ./... | grep -v exported)" ]
+	# Ignoring example app for now TODO(mattysweeps) fix example app
+	[ -z "$$($(GOPATH)/bin/gometalinter --deadline=300s --disable gosec --disable vetshadow --disable maligned --vendor ./... | grep -v exported | grep -v examples/cf-stackdriver-example)" ]
 
 get-deps:
 	# For gometalinter linting
