@@ -65,7 +65,7 @@ func New(c *config.Config, logger lager.Logger) *App {
 
 	var appInfoRepository cloudfoundry.AppInfoRepository
 	if c.ResolveAppMetadata {
-		appInfoRepository = cloudfoundry.NewAppInfoRepository(cfClient)
+		appInfoRepository = cloudfoundry.NewAppInfoRepository(cfClient, c.AppMetadataCachePeriod)
 	} else {
 		appInfoRepository = cloudfoundry.NullAppInfoRepository()
 	}

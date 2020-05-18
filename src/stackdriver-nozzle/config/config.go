@@ -86,16 +86,17 @@ type Config struct {
 	LoggingReqsInFlight  int    `envconfig:"logging_requests_in_flight" default:"16"`
 
 	// Nozzle config
-	HeartbeatRate         int    `envconfig:"heartbeat_rate" default:"30"`
-	MetricsBufferDuration int    `envconfig:"metrics_buffer_duration" default:"30"`
-	MetricsBatchSize      int    `envconfig:"metrics_batch_size" default:"200"`
-	MetricPathPrefix      string `envconfig:"metric_path_prefix" default:"firehose"`
-	FoundationName        string `envconfig:"foundation_name" default:"cf"`
-	ResolveAppMetadata    bool   `envconfig:"resolve_app_metadata"`
-	NozzleID              string `envconfig:"nozzle_id" default:"local-nozzle"`
-	NozzleName            string `envconfig:"nozzle_name" default:"local-nozzle"`
-	NozzleZone            string `envconfig:"nozzle_zone" default:"local-nozzle"`
-	DebugNozzle           bool   `envconfig:"debug_nozzle"`
+	HeartbeatRate          int    `envconfig:"heartbeat_rate" default:"30"`
+	MetricsBufferDuration  int    `envconfig:"metrics_buffer_duration" default:"30"`
+	MetricsBatchSize       int    `envconfig:"metrics_batch_size" default:"200"`
+	MetricPathPrefix       string `envconfig:"metric_path_prefix" default:"firehose"`
+	FoundationName         string `envconfig:"foundation_name" default:"cf"`
+	ResolveAppMetadata     bool   `envconfig:"resolve_app_metadata"`
+	AppMetadataCachePeriod int    `envconfig:"app_info_cache_period" default:"-1"`
+	NozzleID               string `envconfig:"nozzle_id" default:"local-nozzle"`
+	NozzleName             string `envconfig:"nozzle_name" default:"local-nozzle"`
+	NozzleZone             string `envconfig:"nozzle_zone" default:"local-nozzle"`
+	DebugNozzle            bool   `envconfig:"debug_nozzle"`
 	// By default 'origin' label is prepended to metric name, however for runtime metrics (defined here) we add it as a metric label instead.
 	RuntimeMetricRegex string `envconfig:"runtime_metric_regex" default:"^(numCPUS|numGoRoutines|memoryStats\\..*)$"`
 	// If enabled, CounterEvents will be reported as cumulative Stackdriver metrics instead of two gauges (<metric>.delta

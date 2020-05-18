@@ -39,6 +39,7 @@ case $1 in
 
     export DEBUG_NOZZLE=<%= p('nozzle.debug', 'false') %>
     export RESOLVE_APP_METADATA=<%= p('nozzle.resolve_app_metadata', 'true') %>
+    export APP_INFO_CACHE_PERIOD=<%= p('nozzle.app_info_cache_period', '-1') %>
     export METRICS_BUFFER_DURATION=<%= p('nozzle.metrics_buffer_duration', '30') %>
     export METRICS_BATCH_SIZE=<%= p('nozzle.metrics_batch_size', '200') %>
     export METRIC_PATH_PREFIX=<%= p('nozzle.metric_path_prefix', 'firehose') %>

@@ -81,6 +81,10 @@ properties:
     description: Enable resolution of app metadata from appGuid
     default: true
 
+  nozzle.app_info_cache_period:
+    description: The amount of time to retain cached info about an app; -1 "caches" permanently; 0 indicates no caching; positive int caches for supplied number of seconds
+    default: -1
+
   nozzle.metric_path_prefix:
     description: Prefix added to all metric names being sent to Stackdriver, e.g. 'custom/PREFIX/gorouter.total_requests'. May contain slashes.
     default: firehose
